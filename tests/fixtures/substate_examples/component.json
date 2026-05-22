@@ -1,0 +1,52 @@
+{
+  "version": 0,
+  "substate": {
+    "Component": {
+      "header": {
+        "template_address": "0000000000000000000000000000000000000000000000000000000000000000",
+        "owner_rule": {
+          "ByPublicKey": "22e29cb6c8bab8458a885ec8ee9126f6c85eb48f848f0838ce1a26e299b1a15b"
+        },
+        "access_rules": {
+          "method_access": {
+            "balance": "AllowAll",
+            "deposit": "AllowAll",
+            "deposit_all": "AllowAll",
+            "get_balances": "AllowAll",
+            "withdraw_approved": "AllowAll"
+          },
+          "default": "DenyAll"
+        },
+        "entity_id": "c9"
+      },
+      "body": {
+        "state": [
+          {
+            "@cbor": "map",
+            "entries": [
+              [
+                {
+                  "@cbor": "tag",
+                  "tag": 131,
+                  "value": {
+                    "@cbor": "bytes",
+                    "hex": "0101010101010101010101010101010101010101010101010101010101010101"
+                  }
+                },
+                {
+                  "@cbor": "tag",
+                  "tag": 132,
+                  "value": {
+                    "@cbor": "bytes",
+                    "hex": "c9cf5c5a8df5d023066b0901d425e8f55e7dbcbc01452671db2a01274631b8ff"
+                  }
+                }
+              ]
+            ]
+          },
+          {}
+        ]
+      }
+    }
+  }
+}

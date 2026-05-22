@@ -1,0 +1,46 @@
+# Python build artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+.pyright/
+.mypy_cache/
+.tox/
+.nox/
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# uv lock cache (lockfile itself is committed)
+.uv-cache/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
+
+.claude/worktrees
