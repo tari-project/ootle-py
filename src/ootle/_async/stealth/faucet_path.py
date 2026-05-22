@@ -63,14 +63,15 @@ def apply_take_funds_stealth(
     sequence is appended to the fee block, with the revealed-amount
     bucket wired into the :class:`StealthTransferInstruction`.
 
-    The instructions are appended *directly* onto the outer builder's
-    shared fee block rather than through
+    The chain is appended onto the outer builder's shared fee block via
+    :meth:`~TransactionBuilder.add_fee_instruction` and
+    :meth:`~TransactionBuilder.alloc_workspace` rather than through
     :meth:`TransactionBuilder.with_fee_instructions_builder`. That helper
     builds in a fresh inner builder and offsets every workspace id on
     merge to dodge collisions — but this chain re-references the account
     workspace produced by ``take_funds`` (id ``account_wid``), and the
-    offset would silently rewrite that back-reference. Sharing the outer
-    builder's workspace registry keeps the ids contiguous and the
+    offset would silently rewrite that back-reference. Allocating on the
+    outer builder's own registry keeps the ids contiguous and the
     references intact (matching Rust's persistent fee-instruction
     builder, which shares one workspace-name registry across blocks).
     """
@@ -82,27 +83,20 @@ def apply_take_funds_stealth(
         msg = "take_funds_stealth requires the statement's revealed_amount to be positive"
         raise InvalidArgumentError(msg)
     _add_stealth_input_wants(want_list, statement)
-    account_wid = builder._workspace_ids.get(account_label)  # pyright: ignore[reportPrivateUsage]  # internal access
-    if account_wid is None:
-        msg = f"workspace {account_label!r} not registered on the outer builder"
-        raise InvalidArgumentError(msg)
+    account_wid = builder._resolve_workspace(account_label)  # pyright: ignore[reportPrivateUsage]  # internal access
 
-    fee = builder._fee.instructions  # pyright: ignore[reportPrivateUsage]  # internal access
-    fee.append(
+    builder.add_fee_instruction(
         CallMethod(
             call=ComponentRefWorkspace(workspace_id=account_wid),
             method="withdraw",
             args=(resource_address_literal(_TARI_RESOURCE), amount_literal(revealed_amount)),
         )
     )
-    # Allocate + register the bucket id directly (not via _alloc_workspace) for
-    # the same reason we bypass with_fee_instructions_builder: we are writing
-    # into the outer builder's shared registry. bucket_label/fee_bucket_label are
-    # prefix-namespaced by _next_label, so they never collide with account_label.
-    bucket_wid = builder.next_workspace_id()
-    fee.append(PutLastInstructionOutputOnWorkspace(key=bucket_wid))
-    builder._workspace_ids[bucket_label] = bucket_wid  # pyright: ignore[reportPrivateUsage]  # internal access
-    fee.append(
+    # bucket_label/fee_bucket_label are prefix-namespaced by _next_label, so they
+    # never collide with account_label on the shared registry.
+    bucket_wid = builder.alloc_workspace(bucket_label)
+    builder.add_fee_instruction(PutLastInstructionOutputOnWorkspace(key=bucket_wid))
+    builder.add_fee_instruction(
         StealthTransferInstruction(
             resource=_TARI_RESOURCE,
             statement=statement,
@@ -136,15 +130,11 @@ def _route_fees_through_revealed(builder: TransactionBuilder, label: str) -> Non
     Mirrors Rust ``and_pay_fee_from_revealed_output``: the residual
     revealed-output bucket left by the stealth transfer lands on the
     workspace under ``label`` and the fee block draws ``PayFeeFromBucket``
-    against it. Both instructions append directly onto the outer builder's
-    shared fee block, continuing the contiguous workspace-id run set up by
+    against it. Both instructions append onto the outer builder's shared
+    fee block via :meth:`~TransactionBuilder.add_fee_instruction`,
+    continuing the contiguous workspace-id run set up by
     :func:`apply_take_funds_stealth`.
     """
-    wid = builder.next_workspace_id()
-    builder._fee.instructions.append(  # pyright: ignore[reportPrivateUsage]  # internal access
-        PutLastInstructionOutputOnWorkspace(key=wid)
-    )
-    builder._workspace_ids[label] = wid  # pyright: ignore[reportPrivateUsage]  # internal access
-    builder._fee.instructions.append(  # pyright: ignore[reportPrivateUsage]  # internal access
-        PayFeeFromBucket(bucket=WorkspaceOffsetId(id=wid))
-    )
+    wid = builder.alloc_workspace(label)
+    builder.add_fee_instruction(PutLastInstructionOutputOnWorkspace(key=wid))
+    builder.add_fee_instruction(PayFeeFromBucket(bucket=WorkspaceOffsetId(id=wid)))

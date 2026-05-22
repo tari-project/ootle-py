@@ -50,7 +50,15 @@ class TransactionBuilder:
         """Return the next free workspace id without allocating it."""
         return len(self._workspace_ids)
 
-    def _alloc_workspace(self, label: str) -> int:
+    def alloc_workspace(self, label: str) -> int:
+        """Allocate and register the next workspace id under *label*; return it.
+
+        Shares the builder's workspace registry, so ids stay contiguous with
+        any already allocated (no offsetting — that only happens on merge).
+
+        Raises:
+            InvalidArgumentError: *label* is already allocated.
+        """
         if label in self._workspace_ids:
             msg = f"workspace label {label!r} already allocated"
             raise InvalidArgumentError(msg)
@@ -102,7 +110,7 @@ class TransactionBuilder:
 
     def put_last_instruction_output_on_workspace(self, label: str) -> Self:
         """Save the last instruction's output to a named workspace bucket."""
-        wid = self._alloc_workspace(label)
+        wid = self.alloc_workspace(label)
         self._body.instructions.append(PutLastInstructionOutputOnWorkspace(key=wid))
         return self
 
@@ -114,6 +122,11 @@ class TransactionBuilder:
     def add_instruction(self, instruction: Instruction) -> Self:
         """Append a pre-built ``Instruction`` variant to the body."""
         self._body.instructions.append(instruction)
+        return self
+
+    def add_fee_instruction(self, instruction: Instruction) -> Self:
+        """Append a pre-built ``Instruction`` variant to the fee block."""
+        self._fee.instructions.append(instruction)
         return self
 
     def pay_fee_from_component(
