@@ -37,6 +37,17 @@ _RECEIPT_WAIT_TIMEOUT = 10.0
 """Total seconds to wait for the receipt after finalisation before giving up."""
 
 
+def _caller_cancelling() -> bool:
+    """Whether the surrounding task itself has a pending cancellation.
+
+    Distinguishes a watcher-initiated future cancellation (safe to swallow and
+    fall back to REST) from a genuine cancellation of the caller's task (which
+    must propagate). See ``asyncio.Task.cancelling``.
+    """
+    task = asyncio.current_task()
+    return task is not None and task.cancelling() > 0
+
+
 @dataclass(frozen=True, slots=True)
 class AsyncPendingTransaction:
     """Handle for a submitted transaction; await :meth:`watch` to finalise."""
@@ -55,19 +66,25 @@ class AsyncPendingTransaction:
 
         Returns :meth:`TransactionOutcome.commit` /
         :meth:`~TransactionOutcome.only_fee_commit`. ``Commit`` is taken
-        from the SSE event directly; everything else (and any timeout, and
-        the no-watcher path) is confirmed via a REST result query.
+        from the SSE event directly; any other finalisation tag is confirmed
+        with a single REST result query. If the SSE wait yields nothing —
+        deadline reached, or the watcher stopped before finalisation — fall
+        back to polling REST for whatever time remains, matching the
+        resilience of the no-watcher path.
 
         Raises:
             TransactionRejectedError: Consensus rejected the transaction.
             TransactionTimeoutError: Finalisation was not observed in time.
         """
         if self._watcher is None:
-            return await self._poll_until_finalized()
+            return await self._poll_until_finalized(self._timeout)
+        deadline = time.monotonic() + self._timeout
         tag = await self._await_sse(self._watcher)
         if tag == _COMMIT_TAG:
             return TransactionOutcome.commit()
-        return await self._resolve_via_rest()
+        if tag is not None:
+            return await self._resolve_via_rest()
+        return await self._poll_until_finalized(max(deadline - time.monotonic(), 0.0))
 
     async def get_receipt(self, *, timeout: float | None = None) -> TransactionReceipt:
         """Fetch the full transaction receipt, polling until it is available.
@@ -99,7 +116,12 @@ class AsyncPendingTransaction:
         try:
             return await asyncio.wait_for(future, self._timeout)
         except TimeoutError:
-            logger.warning("transaction %s: SSE deadline reached, querying result", self.tx_id)
+            logger.warning("transaction %s: SSE deadline reached, polling result", self.tx_id)
+            return None
+        except asyncio.CancelledError:
+            if not future.cancelled() or _caller_cancelling():
+                raise
+            logger.warning("transaction %s: SSE watcher stopped, polling result", self.tx_id)
             return None
         finally:
             watcher.unregister(self.tx_id)
@@ -111,8 +133,8 @@ class AsyncPendingTransaction:
             raise TransactionTimeoutError(msg, tx_id=self.tx_id)
         return self._classify(outcome)
 
-    async def _poll_until_finalized(self) -> TransactionOutcome:
-        deadline = time.monotonic() + self._timeout
+    async def _poll_until_finalized(self, timeout: float) -> TransactionOutcome:
+        deadline = time.monotonic() + timeout
         while True:
             is_finalized, outcome = await self._transport.get_transaction_result(self.tx_id)
             if is_finalized and outcome is not None:
