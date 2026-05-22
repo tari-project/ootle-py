@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "substate": {
+    "NonFungible": {
+      "data": { "Map": [] },
+      "mutable_data": { "Map": [] },
+      "is_burnt": false
+    }
+  }
+}

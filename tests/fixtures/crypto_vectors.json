@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "wasm": {
+    "upstream": "0.30.0",
+    "sha256": "11b6e5dd4e285057132cee3f5024960273bef156dbd9f7123cf77814f6d19ec9"
+  },
+  "note": "Fixtures are derived from the vendored ootle-wasm blob. Regenerate with `uv run python scripts/regen_fixtures.py` when bumping the blob.",
+  "vectors": {
+    "public_key_from_secret": [
+      {
+        "sk": "778615fef0578ba68f47eba7a59ab9c591401744379763b2ca2a59caf02ac301",
+        "pk": "8643f40212df16b720c06a5a4485cd5db8b02df115bf3712d9e3f78be7a1764a"
+      },
+      {
+        "sk": "0f2c10bf3d128c719c6bfa4ecbae94b7fceebaea6e4438fef38a90e5acc32603",
+        "pk": "38601607a04521e2090114b561356af76ffc69c7a052b65a05fc36d97990c47f"
+      },
+      {
+        "sk": "bbaae8c99d8c9710a6792d27c9e3b6f65987175efc8e6600ad0da28da597f100",
+        "pk": "627510e3d19470609994887fef40bea66d9f1b9d1394b4e63b6438fa78454767"
+      },
+      {
+        "sk": "4d89207fc2eafddf7d8fa040f066b3f2bf58900e58095149520d88267d85ca06",
+        "pk": "0c8a2c3aa1e3db0157742838ccae917a7334f579f8c9f05880b4b8039da3281f"
+      },
+      {
+        "sk": "bb108040666ac4c9a482e3b818d1e2c7ec627332f7eeb09fd8709c90961d2702",
+        "pk": "5c9923740886e0f11486d42d60a2a22a82209038c5b90ce4544484e4aae2da54"
+      }
+    ],
+    "ootle_public_key_from_secret": [
+      {
+        "owner_sk": "326f8d54367cf71a73eb6245dcec6ee9841a7afe71b530612f6bbc2d8106050b",
+        "view_sk": "9759b27a9b17a284e9ada6cb5fe8c08b897011d6bad1c7fc25574630ab08c007",
+        "owner_pk": "1279a64992aff3b8e7bce02dd361962b37a20acba7bbc6b3e526da52463ff744",
+        "view_pk": "26d5719ad5daa7b0a8cecfa72121d083bdce570ceba0bbb328e3faa44789cd0c"
+      },
+      {
+        "owner_sk": "00035804c9ddb095ad50279e61c6ffbb667e4b2379792e663dd50ad296485209",
+        "view_sk": "856abaace6bd963a9ee187ec50c9a1c72553fc6026893bfe5db9849beeaf0b0d",
+        "owner_pk": "6672a28008f909b46bf664ef07e19deb86ebc1e87df1fcb69544cb569f28bc0a",
+        "view_pk": "6c3e7f3d02d9b406dff858c2bc31bd4da74fef0b4d6d2df0289283099aebc068"
+      },
+      {
+        "owner_sk": "5a445729906378e08e290fbd96df5c38a052976b21d480e57ea37623216f3e04",
+        "view_sk": "b1a7a6e6570fd62dc3e6d67ad4468ceb0b6e8e3dbd6acef08b25fc63769cdc0c",
+        "owner_pk": "2eb33e2edacdce47323d690b59073b9e88e6d9f1c78c4e8ffc94e91bfca42737",
+        "view_pk": "26274379b2a44955f06fce4d1d4e45aafb0720dc1b61f8fcd8492ae4504cc94e"
+      },
+      {
+        "owner_sk": "6a08a6c3294657a81b163df1b068736d16ca182200a21aa1a589a0e3e90d8e0b",
+        "view_sk": "b59a67df2b02bd5cb97caabeb8cacb5746e01d830759ac8bc3c2625581b31606",
+        "owner_pk": "b410e8888d252f7a8a746fb2f58988471312a1e9f6d76fda0e38bcf066405546",
+        "view_pk": "34d6136b02079f6e4bdb957c762fe89c94f7521b1418e3ebb26baebd0d9a1f03"
+      },
+      {
+        "owner_sk": "ec61585e75d42badaabfc0e66d561637e6454a19c54a19ac38f5fe25797dae0d",
+        "view_sk": "2f611cf4acfbeb291ff96fcc215f01a4089b8d224f9c9c24c4caee7fb51d8509",
+        "owner_pk": "c66d6da7ce200f5275ce588a056ac6eea7f1ed13b0180b6cf780bf472af8f93e",
+        "view_pk": "eaaae1ac71c86238ba43a7a16a4dce3fc0450745e15a21feab403603471c4d44"
+      }
+    ],
+    "address_round_trip": [
+      {
+        "owner_pk": "c24da4f0a74fd2264d5215da0a0f6f82afd488b64b3a5bbfd90e444fb5148e1e",
+        "view_pk": "d82bb630d9653aa4290978bb5c5aa0de24ea0e3d670407afafba34c0dd4a375c",
+        "network": 0,
+        "memo": null,
+        "address": "otl_1cfx6fu98flfzvn2jzhdq5rm0s2hafz9kfva9h07epezyldg53c0ds2akxrvk2w4y9yyh3w6ut2sduf82pc7kwpq847hm5dxqm49rwhq9n93q2"
+      },
+      {
+        "owner_pk": "c24da4f0a74fd2264d5215da0a0f6f82afd488b64b3a5bbfd90e444fb5148e1e",
+        "view_pk": "d82bb630d9653aa4290978bb5c5aa0de24ea0e3d670407afafba34c0dd4a375c",
+        "network": 0,
+        "memo": "6d656d6f2d00",
+        "address": "otl_1cfx6fu98flfzvn2jzhdq5rm0s2hafz9kfva9h07epezyldg53c0ds2akxrvk2w4y9yyh3w6ut2sduf82pc7kwpq847hm5dxqm49rwhrdv4kk7tgq9a6lxg"
+      },
+      {
+        "owner_pk": "0651c884277c432c3f20407d76098fe528c10998d7406e2d711f5e344c182d19",
+        "view_pk": "a699f9a27ee507dbf97d0586c04d0b88c2c5f5026f6c9d266ef860a5fcb1f76c",
+        "network": 16,
+        "memo": null,
+        "address": "otl_loc_1qegu3pp803pjc0eqgp7hvzv0u55vzzvc6aqxutt3ra0rgnqc95v6dx0e5flw2p7ml97stpkqf59c3sk975px7myayeh0sc99ljclwmqk6wlvd"
+      },
+      {
+        "owner_pk": "0651c884277c432c3f20407d76098fe528c10998d7406e2d711f5e344c182d19",
+        "view_pk": "a699f9a27ee507dbf97d0586c04d0b88c2c5f5026f6c9d266ef860a5fcb1f76c",
+        "network": 16,
+        "memo": "6d656d6f2d01",
+        "address": "otl_loc_1qegu3pp803pjc0eqgp7hvzv0u55vzzvc6aqxutt3ra0rgnqc95v6dx0e5flw2p7ml97stpkqf59c3sk975px7myayeh0sc99ljclwmrdv4kk7tgpqptktc"
+      },
+      {
+        "owner_pk": "62a6284649a9f43629d2efb4b529b56b9624cb34d36e4cc77f4cf16a3f8a6d76",
+        "view_pk": "ea77b46eef8ce37f80a98b072219a85ff8bb7748968ab0b4a66b4003a0cf3352",
+        "network": 38,
+        "memo": null,
+        "address": "otl_esm_1v2nzs3jf486rv2wja76t22d4dwtzfje56dhye3mlfnck50u2d4mw5aa5dmhcecmlsz5ckpezrx59l79mwayfdz4skjnxksqr5r8nx5srvxt48"
+      },
+      {
+        "owner_pk": "62a6284649a9f43629d2efb4b529b56b9624cb34d36e4cc77f4cf16a3f8a6d76",
+        "view_pk": "ea77b46eef8ce37f80a98b072219a85ff8bb7748968ab0b4a66b4003a0cf3352",
+        "network": 38,
+        "memo": "6d656d6f2d02",
+        "address": "otl_esm_1v2nzs3jf486rv2wja76t22d4dwtzfje56dhye3mlfnck50u2d4mw5aa5dmhcecmlsz5ckpezrx59l79mwayfdz4skjnxksqr5r8nx5ndv4kk7tgzl46eav"
+      }
+    ],
+    "schnorr_sign_inputs": [
+      {
+        "sk": "9fed3d9291866a3e3131d21892080d237d629c97b6e7ed2ff3eb62244ebdac0a",
+        "message": "54bd143bf26851814f5be06530649da802db846e2ac5bb2cc9ca68bf0a04bd0f"
+      },
+      {
+        "sk": "409b9544ac41f93943953aecbc22c1f383781d74d99737a8771c371bd1857200",
+        "message": "0ad98696ca8d7502bd8c3381e612f339a3335c8dcb9b3661299b38f6294fb908"
+      },
+      {
+        "sk": "2d6ed44fb8f5f69d296866569641cb67bcae79dc01cce778f1f5851afc1da20d",
+        "message": "3dbb9185aad92a6898d7f215049e6be61f8c099a9be673cf95c010beaed66e0c"
+      }
+    ]
+  }
+}

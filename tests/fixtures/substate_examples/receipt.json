@@ -1,0 +1,29 @@
+{
+  "epoch": 42,
+  "fee_receipt": {
+    "total_fee_payment": 500,
+    "total_fees_paid": 470,
+    "total_fee_overcharge": 0,
+    "cost_breakdown": {
+      "breakdown": {"RuntimeCall": 100, "Storage": 300, "Events": 100}
+    }
+  },
+  "events": [
+    {
+      "topic": "MyTpl::Sent",
+      "payload": {"amount": 100},
+      "template_address": "tpl-1",
+      "substate_id": "component-1"
+    }
+  ],
+  "logs": ["info: ok"],
+  "diff_summary": {
+    "upped": [
+      {
+        "substate_id": "component_aaaa000000000000000000000000000000000000000000000000000000000000",
+        "version": 0,
+        "value_hash": "ffff000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}

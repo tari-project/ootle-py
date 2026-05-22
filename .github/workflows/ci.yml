@@ -1,0 +1,73 @@
+name: CI
+
+# Runs the project's quality gate on every pull request and on pushes to
+# main. `make ci` is the source of truth (lint, format-check, typecheck,
+# coverage, unasync drift, WASM hash). The build job verifies the wheel
+# still bundles the WASM blob and that the distributions are valid —
+# without publishing anything (that happens only on v* tags, see
+# release.yml).
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref to save runner minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Sync dependencies
+        run: uv sync --all-groups
+
+      - name: Run CI gate
+        run: make ci
+
+  build:
+    name: Build (no publish)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Sync dependencies
+        run: uv sync --all-groups
+
+      - name: Build wheel + sdist
+        run: make build
+
+      - name: Verify wheel bundles the WASM blob
+        run: |
+          unzip -l dist/ootle-*.whl | grep -q ootle_wasm_bg.wasm
+          unzip -l dist/ootle-*.whl | grep -q VERSION
+
+      - name: Validate distributions
+        run: uv run --with twine twine check dist/*

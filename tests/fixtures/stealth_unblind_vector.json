@@ -1,0 +1,11 @@
+{
+  "_provenance": "Generated from ootle-wasm-core encrypt_data (RistrettoSecretKey/commitment factory). To regenerate: add a temporary test to crates/ootle_wasm/core/src/stealth/encrypted_data.rs that prints hex of (view_secret, sender_public_nonce, commitment, encrypt_data(amount, mask, dh_kdf(nonce_secret, view_public), memo)) and run `cargo test -p ootle-wasm-core -- --nocapture`.",
+  "view_secret": "d5f2c3380a66cd93636194ef13c065fba2178f257754ea6af58166899c97360b",
+  "sender_public_nonce": "6a63168879f4a9446e25066d1b464eb565107ade5a3adcfe7e6a7369a6a76167",
+  "commitment": "8e2c1398fe43cc229d0aa3d1450fe82396edcea854fc5e31f5e1f8e21e99620c",
+  "encrypted_data": "268b58f52a59c96d10715707506afaba48fd59d045995a7323f4f8d78f024d3969dc70b398f54c55541a9bc78a53bfb6adc0ba3742acdd27f127a60f1f756cb46ffda28efda2de074b917f25a9a69fdc",
+  "encrypted_data_with_memo": "0ef0480e715a4cff35831dcccdfeceed987d204f6a3a8fca47801dd48a982961d51daed84720fa6ddfd34b154aea89175880493885b8efa3baf5bb2b6a8125c590a85e5ebcfe2332ba7f99a29777e5cd8831a90827db8214fe7dcd9fdfc3cb6ff73426aac49a7f20597cc7abf19eee1cbcad821e80938f08df0e25056c21f882ea90c76a83f66456bfc73fc8fd4a23e54cf5bb0dbb5b8264a90d6ea5fb32cfcafe0f8864257ae1622964da1e15e7ae23b5306fd0eee5a88b52bef7ccf3354623148a3e5b6e0c2c3434805acffdccb764d8302483cdce9df206e0ca3f3add33d21b0bcf9b7a9758c36eebfe401d346946d741a06af07fab938fedde2ac7e55d03f806a56685addde2403a2990cc33fa92ba9bdd04da580ffd08b33a1061661003e63609b5cfb1e648c562ebad032a13fb431cb410b77cf14139dfddbf9b456cb5d435c54b3c42a0748a56dc5de1c583",
+  "mask": "44a269a6a519d236c3a7c829c3971337b66dc5e351e92c0d3b0cff094909e703",
+  "value": 12345,
+  "memo_json": {"Message": "ootle-python fixture"}
+}

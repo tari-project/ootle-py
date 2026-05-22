@@ -1,0 +1,4 @@
+upstream: 0.31.0-local
+sha256:   ca806f1eba8d0b06431098c89f2b7cc4836f68769c2c44bb16c1ea5571c337af
+fetched:  2026-05-21
+source:   local build @ 885d8002d (crates/ootle_wasm, branch ootle-wasm-improvements)

@@ -1,0 +1,25 @@
+{
+  "version": 0,
+  "substate": {
+    "Resource": {
+      "resource_type": "Stealth",
+      "owner_rule": "None",
+      "access_rules": {
+        "mintable": "DenyAll",
+        "burnable": "DenyAll",
+        "recallable": "DenyAll",
+        "withdrawable": "AllowAll",
+        "depositable": "AllowAll",
+        "update_non_fungible_data": "AllowAll",
+        "update_access_rules": "DenyAll",
+        "freeze": "DenyAll",
+        "update_metadata": "DenyAll"
+      },
+      "metadata": { "SYMBOL": "tTARI" },
+      "total_supply": null,
+      "view_key": null,
+      "auth_hook": null,
+      "divisibility": 6
+    }
+  }
+}
