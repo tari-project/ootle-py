@@ -72,8 +72,6 @@ class IAsyncFaucet(BuilderBase):
         owner_pk = signer.owner_pk
 
         def _build(b: TransactionBuilder) -> TransactionBuilder:
-            account_wid = b.next_workspace_id()
-            ws_arg = InstructionArgWorkspace(WorkspaceOffsetId(id=account_wid))
             faucet_req = SubstateRequirement(
                 id=SubstateId(XTR_FAUCET_COMPONENT_ADDRESS), version=None
             )
@@ -81,10 +79,15 @@ class IAsyncFaucet(BuilderBase):
             claim_req = SubstateRequirement(
                 id=SubstateId(XTR_FAUCET_CLAIM_RESOURCE_ADDRESS), version=None
             )
+            # Allocate the account workspace first, then resolve its id by label so
+            # `take`'s argument references the id that
+            # put_last_instruction_output_on_workspace actually assigned — rather than
+            # predicting it via next_workspace_id() before allocation.
+            b.create_account(owner_pk).put_last_instruction_output_on_workspace(account_label)
+            account_wid = b._resolve_workspace(account_label)  # pyright: ignore[reportPrivateUsage]  # internal access
+            ws_arg = InstructionArgWorkspace(WorkspaceOffsetId(id=account_wid))
             return (
-                b.create_account(owner_pk)
-                .put_last_instruction_output_on_workspace(account_label)
-                .call_method(XTR_FAUCET_COMPONENT_ADDRESS, "take", (ws_arg,))
+                b.call_method(XTR_FAUCET_COMPONENT_ADDRESS, "take", (ws_arg,))
                 .add_input(faucet_req)
                 .add_input(vault_req)
                 .add_input(claim_req)
