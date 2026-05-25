@@ -1,6 +1,6 @@
 [project]
 name = "ootle-py"
-version = "0.1.0"
+version = "0.1.1"
 description = "Async-first Python client library for the Tari L2 (Ootle) network."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -27,11 +27,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tari-project/ootle-python"
-Documentation = "https://github.com/tari-project/ootle-python/tree/main/docs"
-Repository = "https://github.com/tari-project/ootle-python"
-Issues = "https://github.com/tari-project/ootle-python/issues"
-Changelog = "https://github.com/tari-project/ootle-python/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/tari-project/ootle-py"
+Documentation = "https://github.com/tari-project/ootle-py/tree/main/docs"
+Repository = "https://github.com/tari-project/ootle-py"
+Issues = "https://github.com/tari-project/ootle-py/issues"
+Changelog = "https://github.com/tari-project/ootle-py/blob/main/CHANGELOG.md"
 
 [project.scripts]
 ootle = "ootle.cli:main"

@@ -5,6 +5,23 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [0.1.1] — 2026-05-25
+
+### Fixed
+
+- **Project metadata URLs** — corrected the GitHub links in `[project.urls]`
+  (`tari-project/ootle-python` → `tari-project/ootle-py`); the old repo name
+  did not exist, so the PyPI sidebar "Project links" (Homepage, Documentation,
+  Repository, Issues, Changelog) all 404'd.
+- **README links** — made the repo-relative links (CHANGELOG, LICENSE,
+  CLAUDE.md, the example/script files) absolute so they resolve on the PyPI
+  project page, where relative links were being resolved against
+  `pypi.org` and breaking.
+- **`ootle.__version__`** — resolve the version from the distribution name
+  (`ootle-py`) instead of the import name (`ootle`). The old lookup raised
+  `PackageNotFoundError` and silently degraded to `"0.0.0+local"` for every
+  real install.
+
 ## [0.1.0] — 2026-05-21
 
 The first public release. Brings the v1 slice of `ootle-rs` to Python:

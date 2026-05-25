@@ -66,8 +66,8 @@ jobs:
 
       - name: Verify wheel bundles the WASM blob
         run: |
-          unzip -l dist/ootle-*.whl | grep -q ootle_wasm_bg.wasm
-          unzip -l dist/ootle-*.whl | grep -q VERSION
+          unzip -l dist/ootle_py-*.whl | grep -q ootle_wasm_bg.wasm
+          unzip -l dist/ootle_py-*.whl | grep -q VERSION
 
       - name: Validate distributions
         run: uv run --with twine twine check dist/*
