@@ -5,7 +5,7 @@ A modern, async-first **Python client library for the Tari L2 network**
 `ootle-rs` and the JavaScript package `@tari-project/ootle-wasm`.
 
 > **Status: pre-1.0.** The `0.x.y` API may shift; every breaking change
-> is recorded in [`CHANGELOG.md`](CHANGELOG.md).
+> is recorded in [`CHANGELOG.md`](https://github.com/tari-project/ootle-py/blob/main/CHANGELOG.md).
 
 ## Install
 
@@ -50,8 +50,8 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-Full version: [`examples/balance_query.py`](examples/balance_query.py)
-(and the sync mirror, [`examples/balance_query_sync.py`](examples/balance_query_sync.py)).
+Full version: [`examples/balance_query.py`](https://github.com/tari-project/ootle-py/blob/main/examples/balance_query.py)
+(and the sync mirror, [`examples/balance_query_sync.py`](https://github.com/tari-project/ootle-py/blob/main/examples/balance_query_sync.py)).
 
 ## Quick start: public transfer
 
@@ -98,7 +98,7 @@ are folded in automatically at seal time (multi-signer co-authorisation);
 `manual_co_signing.py` shows the explicit authorize → attach → seal
 hand-off for remote-signer / HSM setups. Estimate fees first with
 `await client.send_dry_run(unsigned)`. Full file:
-[`examples/fungible_transfer.py`](examples/fungible_transfer.py).
+[`examples/fungible_transfer.py`](https://github.com/tari-project/ootle-py/blob/main/examples/fungible_transfer.py).
 
 ## Stealth (confidential) transfers
 
@@ -159,7 +159,7 @@ read back with `AsyncOotleClient.decrypt_owned_utxo` (AEAD owner-read).
 
 The full set of runnable stealth examples — faucet deposit,
 stealth↔revealed, stealth↔stealth, spending an owned UTXO, and the sync
-mirror — lives in [`examples/stealth/`](examples/stealth/README.md).
+mirror — lives in [`examples/stealth/`](https://github.com/tari-project/ootle-py/blob/main/examples/stealth/README.md).
 
 ## Sync vs. async
 
@@ -174,7 +174,7 @@ from ootle import AsyncOotleClient             # async
 The sync names mirror the async ones — `IAccount` / `IAsyncAccount`,
 `StealthTransfer` / `AsyncStealthTransfer`, `PendingTransaction` /
 `AsyncPendingTransaction`, and so on. The sync tree is **generated** from
-the async source by [`scripts/unasync.py`](scripts/unasync.py) and
+the async source by [`scripts/unasync.py`](https://github.com/tari-project/ootle-py/blob/main/scripts/unasync.py) and
 committed; CI asserts the two trees stay byte-identical. Both ship in the
 wheel.
 
@@ -188,8 +188,8 @@ OOTLE_INDEXER_URL=http://localhost:12500 \
 uv run python -m examples.fungible_transfer
 ```
 
-See [`examples/README.md`](examples/README.md) and
-[`examples/stealth/README.md`](examples/stealth/README.md) for the full
+See [`examples/README.md`](https://github.com/tari-project/ootle-py/blob/main/examples/README.md) and
+[`examples/stealth/README.md`](https://github.com/tari-project/ootle-py/blob/main/examples/stealth/README.md) for the full
 catalogue and the few examples that need an external artifact (a deployed
 template, a live component to watch, …).
 
@@ -234,7 +234,7 @@ vendored WASM blob.
 ## Contributing
 
 The engineering contract — including the **200-line file limit** and the
-strict typing rules — is in [`CLAUDE.md`](CLAUDE.md).
+strict typing rules — is in [`CLAUDE.md`](https://github.com/tari-project/ootle-py/blob/main/CLAUDE.md).
 
 ```bash
 make sync          # bootstrap the venv
@@ -248,7 +248,7 @@ drift.
 
 ## License & acknowledgements
 
-Released under the **BSD 3-Clause** license — see [`LICENSE`](LICENSE).
+Released under the **BSD 3-Clause** license — see [`LICENSE`](https://github.com/tari-project/ootle-py/blob/main/LICENSE).
 
 The vendored WASM blob is built from
 [`@tari-project/ootle-wasm`](https://www.npmjs.com/package/@tari-project/ootle-wasm)
