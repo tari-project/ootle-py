@@ -17,6 +17,10 @@ each is called out below.
   CLAUDE.md, the example/script files) absolute so they resolve on the PyPI
   project page, where relative links were being resolved against
   `pypi.org` and breaking.
+- **`ootle.__version__`** — resolve the version from the distribution name
+  (`ootle-py`) instead of the import name (`ootle`). The old lookup raised
+  `PackageNotFoundError` and silently degraded to `"0.0.0+local"` for every
+  real install.
 
 ## [0.1.0] — 2026-05-21
 

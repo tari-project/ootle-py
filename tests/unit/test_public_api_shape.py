@@ -7,6 +7,7 @@ catches it before the user does.
 from __future__ import annotations
 
 import importlib
+from importlib.metadata import version
 from importlib.resources import files
 from pathlib import Path
 
@@ -118,6 +119,14 @@ def test_public_module_can_be_imported_via_importlib() -> None:
 def test_version_is_non_empty_string() -> None:
     assert isinstance(ootle.__version__, str)
     assert ootle.__version__
+
+
+def test_version_matches_installed_distribution_metadata() -> None:
+    # Regression guard: the distribution is named ``ootle-py`` while the
+    # import package is ``ootle``. Looking up ``version("ootle")`` raises
+    # PackageNotFoundError and silently falls back to "0.0.0+local".
+    assert ootle.__version__ == version("ootle-py")
+    assert ootle.__version__ != "0.0.0+local"
 
 
 def test_wasm_version_matches_first_line_of_vendor_file() -> None:
