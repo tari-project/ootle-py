@@ -16,6 +16,14 @@ if TYPE_CHECKING:
 
 _MAX_BLOBS = 256
 
+DEFAULT_MAX_EPOCH_WINDOW = 10
+"""Epochs past the current one that client-side builders grant a transaction by default.
+
+Mirrors the window the ``ootle-rs`` docs use (``get_epoch() + 10``). ``max_epoch`` is
+mandatory on ``UnsignedTransactionV1``, so a builder with no explicit bound resolves
+one from the live network epoch at ``prepare()`` time.
+"""
+
 
 def substate_requirement_to_json(req: SubstateRequirement) -> dict[str, Any]:
     """Render a :class:`SubstateRequirement` into its wire JSON form."""
@@ -53,6 +61,7 @@ class UnsignedTransactionV1Body:
     is_seal_signer_authorized: bool = True
     dry_run: bool = False
     blobs: list[bytes] = field(default_factory=list[bytes])
+    nonce: int = 0
 
     @classmethod
     def empty(cls, network: int) -> Self:
@@ -60,7 +69,22 @@ class UnsignedTransactionV1Body:
         return cls(network=network, fee_instructions=[], instructions=[], inputs=[])
 
     def to_json(self) -> dict[str, Any]:
-        """Serialize to the ``UnsignedTransactionV1`` JSON wire format."""
+        """Serialize to the ``UnsignedTransactionV1`` JSON wire format.
+
+        Raises:
+            InvalidArgumentError: ``max_epoch`` has not been set. The engine
+                requires every transaction to carry a bounded validity window
+                — set it with ``TransactionBuilder.with_max_epoch()``, or let
+                an async builder's ``prepare()`` default it from the live epoch.
+        """
+        if self.max_epoch is None:
+            from ootle.errors import InvalidArgumentError  # noqa: PLC0415
+
+            msg = (
+                "max_epoch is required — call TransactionBuilder.with_max_epoch(epoch) "
+                "(e.g. await client.get_epoch() + DEFAULT_MAX_EPOCH_WINDOW)"
+            )
+            raise InvalidArgumentError(msg)
         return {
             "network": self.network,
             "fee_instructions": [i.to_json() for i in self.fee_instructions],
@@ -71,6 +95,7 @@ class UnsignedTransactionV1Body:
             "is_seal_signer_authorized": self.is_seal_signer_authorized,
             "dry_run": self.dry_run,
             "blobs": [base64.b64encode(b).decode() for b in self.blobs],
+            "nonce": self.nonce,
         }
 
     def add_blob(self, blob: bytes) -> int:

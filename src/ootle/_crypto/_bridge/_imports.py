@@ -48,9 +48,9 @@ def _build_handlers(bridge: Bridge) -> dict[str, Callable[..., str | None]]:
         return None
 
     return {
-        "__wbg_getRandomValues_e9de607763a970bd": get_random_values,
-        "__wbg___wbindgen_throw_be289d5034ed271b": throw_panic,
-        "__wbg_Error_8c4e43fe74559d73": make_error,
+        "__wbg_getRandomValues_47873ea553f6780e": get_random_values,
+        "__wbg___wbindgen_throw_5d9e815e6fdf150f": throw_panic,
+        "__wbg_Error_67e7344beaa85059": make_error,
         "__wbindgen_init_externref_table": externref_table_init,
     }
 

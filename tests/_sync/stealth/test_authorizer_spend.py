@@ -2,7 +2,7 @@
 
 Hand-written sync counterpart of
 ``tests/_async/stealth/test_authorizer_spend.py``. Covers the gap-#4 fix:
-a spent stealth UTXO carries ``spend_condition: Signed(<one-time pk>)``,
+a spent stealth UTXO carries ``auth: Key(<one-time pk>)``,
 so the transaction must carry a signature from that one-time key (never
 the raw account key).
 """

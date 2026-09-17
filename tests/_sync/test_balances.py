@@ -9,7 +9,7 @@ from ootle._types.address import ComponentAddress, ResourceAddress
 from ootle._types.amount import Amount
 from tests._helpers.substates import component_value, envelope, fungible_vault_value
 
-from ._helpers import network_response
+from ._helpers import mock_network
 
 VAULT_TARI = "vault_" + ("aa" * 32)
 VAULT_USDT = "vault_" + ("bb" * 32)
@@ -19,7 +19,7 @@ ACCOUNT = ComponentAddress("component_account_one")
 
 
 def test_get_account_balance_returns_matching_resource(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     httpx_mock.add_response(
         url=f"http://idx/substates/{ACCOUNT}",
         json=envelope(component_value({RESOURCE_TARI: VAULT_TARI, RESOURCE_USDT: VAULT_USDT})),
@@ -41,7 +41,7 @@ def test_get_account_balance_returns_matching_resource(httpx_mock: HTTPXMock) ->
 
 
 def test_get_account_balance_missing_resource_returns_zero(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     httpx_mock.add_response(
         url=f"http://idx/substates/{ACCOUNT}",
         json=envelope(component_value({RESOURCE_TARI: VAULT_TARI})),
@@ -58,7 +58,7 @@ def test_get_account_balance_missing_resource_returns_zero(httpx_mock: HTTPXMock
 
 
 def test_get_account_balances_returns_all_vaults(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     httpx_mock.add_response(
         url=f"http://idx/substates/{ACCOUNT}",
         json=envelope(component_value({RESOURCE_TARI: VAULT_TARI, RESOURCE_USDT: VAULT_USDT})),
@@ -83,7 +83,7 @@ def test_get_account_balances_returns_all_vaults(httpx_mock: HTTPXMock) -> None:
 
 
 def test_get_account_balances_missing_account_returns_empty(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     httpx_mock.add_response(url=f"http://idx/substates/{ACCOUNT}", status_code=404)
 
     with OotleClient.connect("http://idx") as client:

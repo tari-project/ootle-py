@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
-
 from ootle import TransactionBuilder
 from ootle._types.network import Network
 from ootle._types.substate import SubstateId, SubstateRequirement
+from tests._helpers.builder import build_body
 
 
 def test_merge_remaps_workspace_ids_when_dst_already_has_buckets() -> None:
@@ -23,7 +22,7 @@ def test_merge_remaps_workspace_ids_when_dst_already_has_buckets() -> None:
         .call_method_on_workspace("src_bucket", "deposit")
     )
     dst.merge(src)
-    body = json.loads(dst.build_unsigned().json)
+    body = build_body(dst)
     # dst's bucket is at id 0; src's bucket should be remapped to id 1.
     keys = [
         i["PutLastInstructionOutputOnWorkspace"]["key"]
@@ -60,7 +59,7 @@ def test_merge_remaps_args_referencing_remapped_workspace() -> None:
         (InstructionArgWorkspace(WorkspaceOffsetId(id=wid)),),
     )
     dst.merge(src_b)
-    body = json.loads(dst.build_unsigned().json)
+    body = build_body(dst)
     consume = next(
         i["CallMethod"]
         for i in body["instructions"]
@@ -95,7 +94,7 @@ def test_merge_remaps_stealth_transfer_revealed_input_bucket() -> None:
         )
     )
     dst.merge(src)
-    body = json.loads(dst.build_unsigned().json)
+    body = build_body(dst)
     transfer = next(i["StealthTransfer"] for i in body["instructions"] if "StealthTransfer" in i)
     # dst already holds one bucket (id 0) → offset 1 → src's ref 0 becomes 1.
     assert transfer["revealed_input_bucket"]["id"] == 1
@@ -106,7 +105,7 @@ def test_merge_carries_inputs_from_src() -> None:
     req = SubstateRequirement(id=SubstateId("component_carried"), version=None)
     src = TransactionBuilder(Network.LOCAL_NET).add_input(req)
     dst.merge(src)
-    body = json.loads(dst.build_unsigned().json)
+    body = build_body(dst)
     assert any(i["substate_id"] == "component_carried" for i in body["inputs"])
 
 
@@ -119,7 +118,7 @@ def test_merge_no_offset_when_dst_empty() -> None:
         .put_last_instruction_output_on_workspace("solo")
     )
     dst.merge(src)
-    body = json.loads(dst.build_unsigned().json)
+    body = build_body(dst)
     keys = [
         i["PutLastInstructionOutputOnWorkspace"]["key"]
         for i in body["instructions"]

@@ -1,4 +1,4 @@
-upstream: 0.31.0-local
-sha256:   ca806f1eba8d0b06431098c89f2b7cc4836f68769c2c44bb16c1ea5571c337af
-fetched:  2026-05-21
-source:   local build @ 885d8002d (crates/ootle_wasm, branch ootle-wasm-improvements)
+upstream: 0.41.0
+sha256:   d3ac37d813f819c5e00443cb311ad73d2a66d51ed28d8525a4176fe31b88ab16
+fetched:  2026-09-17
+source:   https://www.npmjs.com/package/@tari-project/ootle-wasm/v/0.41.0

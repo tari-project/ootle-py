@@ -33,6 +33,7 @@ def build_unsigned(builder: TransactionBuilder) -> UnsignedTransaction:
         is_seal_signer_authorized=body.is_seal_signer_authorized,
         dry_run=body.dry_run,
         blobs=list(body.blobs),
+        nonce=body.nonce,
     )
     for req in fee.inputs:
         merged.add_input(req)

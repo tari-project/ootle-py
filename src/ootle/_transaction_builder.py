@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Self
 
 from ootle._transaction_builder_build import build_unsigned
+from ootle._transaction_builder_envelope import EnvelopeMixin
 from ootle._transaction_builder_fees import (
     pay_fee_from_bucket,
     pay_fee_from_component,
@@ -35,7 +36,7 @@ if TYPE_CHECKING:
     from ootle._types.transaction import UnsignedTransaction
 
 
-class TransactionBuilder:
+class TransactionBuilder(EnvelopeMixin):
     """Fluent builder for :class:`UnsignedTransaction`."""
 
     __slots__ = ("_body", "_fee", "_workspace_ids")
@@ -157,21 +158,6 @@ class TransactionBuilder:
         inner = type(self)(self._body.network)
         f(inner)
         merge_fee_builder(self, inner)
-        return self
-
-    def with_dry_run(self, dry_run: bool) -> Self:
-        """Set the ``dry_run`` flag on the unsigned transaction."""
-        self._body.dry_run = dry_run
-        return self
-
-    def with_min_epoch(self, epoch: int | None) -> Self:
-        """Set the minimum epoch the transaction is valid in."""
-        self._body.min_epoch = epoch
-        return self
-
-    def with_max_epoch(self, epoch: int | None) -> Self:
-        """Set the maximum epoch the transaction is valid in."""
-        self._body.max_epoch = epoch
         return self
 
     def then(self, f: Callable[[Self], Self]) -> Self:

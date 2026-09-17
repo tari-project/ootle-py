@@ -27,7 +27,7 @@ def _body(vec: dict[str, Any], encrypted_data: str) -> str:
                 "minimum_value_promise": 0,
                 "viewable_balance_proof": None,
             },
-            "spend_condition": {"Signed": vec["sender_public_nonce"]},
+            "auth": {"Key": vec["sender_public_nonce"]},
             "tag": 0,
         }
     )

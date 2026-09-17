@@ -65,6 +65,7 @@ def test_workspace_arg_to_json() -> None:
 
 def test_unsigned_body_envelope_shape() -> None:
     body = UnsignedTransactionV1Body.empty(network=0x10)
+    body.max_epoch = 11
     body.instructions.append(
         CallMethod(
             call=ComponentRefAddress(address=ComponentAddress("component_x")),
@@ -78,6 +79,7 @@ def test_unsigned_body_envelope_shape() -> None:
     assert len(out["instructions"]) == 1
     assert out["inputs"] == []
     assert out["min_epoch"] is None
-    assert out["max_epoch"] is None
+    assert out["max_epoch"] == 11
     assert out["is_seal_signer_authorized"] is True
     assert out["dry_run"] is False
+    assert out["nonce"] == 0

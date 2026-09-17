@@ -10,7 +10,7 @@ from ootle._async.stealth.transfer import AsyncStealthTransfer
 from ootle._crypto._stealth_provider import StealthOutputsStatementResult
 from ootle._types.stealth import Mask, StealthOutputsStatement
 from ootle.errors import InvalidArgumentError
-from tests._async._helpers import network_response
+from tests._async._helpers import mock_network
 from tests._async.stealth._builder_helpers import (
     COMPONENT,
     RESOURCE,
@@ -51,7 +51,7 @@ async def test_prepare_with_non_stealth_crypto_raises(httpx_mock: HTTPXMock) -> 
 async def test_prepare_rejects_unexpected_provider_result_shape(
     httpx_mock: HTTPXMock,
 ) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
 
     class _BadCrypto:
         def generate_outputs_statement(self, _specs: object, _revealed: int) -> object:

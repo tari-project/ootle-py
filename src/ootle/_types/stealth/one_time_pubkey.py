@@ -1,7 +1,7 @@
 """``OneTimePublicKey`` — the 32-byte Ristretto stealth spending key.
 
 Mirrors Rust ``RistrettoPublicKeyBytes`` when used as a stealth UTXO's
-``SpendCondition::Signed(pk)`` discriminant. Lives in its own module so
+``SpendAuthorization::Key(pk)`` discriminant. Lives in its own module so
 the requirement / statement / output modules can import it without
 pulling the whole encrypted-data layer.
 """

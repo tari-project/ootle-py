@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+from ootle._async._max_epoch import ensure_max_epoch
 from ootle._async._offload import offload
 from ootle._async.stealth._builder_helpers import (
     emit_revealed_output_deposit,
@@ -62,6 +63,7 @@ async def prepare_stealth_transfer(
     emit_stealth_transfer_instruction(builder, state.resource, statement, revealed_bucket)
     if state.revealed_output_amount > 0:
         emit_revealed_output_deposit(builder, want_list, _signer_account(client), state.resource)
+    await ensure_max_epoch(client, builder)
     unsigned = builder.build_unsigned()
     unsigned = await client.resolver.resolve(unsigned, want_list)
     return StealthTransferSpec(

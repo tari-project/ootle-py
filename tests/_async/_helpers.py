@@ -7,7 +7,23 @@ to ``tests/_sync/``.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pytest_httpx import HTTPXMock
+
 
 def network_response(epoch: int = 1) -> dict[str, object]:
     """Canonical ``GET network`` mock body for ``Network.LOCAL_NET``."""
     return {"network": "localnet", "network_byte": 0x10, "epoch": epoch}
+
+
+def mock_network(httpx_mock: HTTPXMock, epoch: int = 1) -> None:
+    """Register a reusable ``GET network`` response.
+
+    Reusable because a client hits the endpoint both at ``open()`` and again
+    whenever a builder's ``prepare()`` resolves its default ``max_epoch``.
+    """
+    httpx_mock.add_response(
+        url="http://idx/network", json=network_response(epoch), is_reusable=True
+    )

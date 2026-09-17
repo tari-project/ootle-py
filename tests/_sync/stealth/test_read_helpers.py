@@ -38,7 +38,7 @@ def _engine_utxo_substate(
         "minimum_value_promise": 0,
         "viewable_balance": None,
     }
-    inner = {"output": body, "spend_condition": {"Signed": "ff" * 32}, "tag": 1}
+    inner = {"output": body, "auth": {"Key": "ff" * 32}, "tag": 1}
     return Substate(
         id=SubstateId(opaque=f"utxo_resource_{commitment_hex}"),
         version=0,

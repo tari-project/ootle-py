@@ -144,7 +144,7 @@ def test_stealth_unspent_output_round_trip() -> None:
         minimum_value_promise=0,
         viewable_balance_proof=None,
     )
-    suo = StealthUnspentOutput(output=body, spend_condition={"Signed": "ff" * 32}, tag=42)
+    suo = StealthUnspentOutput(output=body, auth={"Key": "ff" * 32}, tag=42)
     assert StealthUnspentOutput.from_json(suo.to_json()) == suo
 
 

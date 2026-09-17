@@ -40,7 +40,7 @@ def output_witness(
     }
     if view_public_key is not None:
         witness["resource_view_key"] = view_public_key.hex()
-    return {"witness": witness, "spend_condition": {"Signed": spend_pk.hex()}, "tag": 0}
+    return {"witness": witness, "auth": {"Key": spend_pk.hex()}, "tag": 0}
 
 
 def outputs_statement(

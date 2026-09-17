@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 from pytest_httpx import HTTPXMock
 
@@ -12,6 +10,7 @@ from ootle._types._tari_constants import TARI_TOKEN
 from ootle._types.stealth import Output
 from ootle._types.want_input import WantInput
 from ootle.errors import InvalidArgumentError
+from tests._helpers.builder import build_body
 
 from ._builder_helpers import (
     COMMITMENT,
@@ -83,8 +82,7 @@ async def test_second_spend_revealed_input_raises(httpx_mock: HTTPXMock) -> None
     # The first call's withdrawn bucket survives untouched.
     assert b._state.revealed_input_amount == 100  # pyright: ignore[reportPrivateUsage]  # internal access
     assert b._revealed_input_label is not None  # pyright: ignore[reportPrivateUsage]  # internal access
-    body = b._builder.build_unsigned()  # pyright: ignore[reportPrivateUsage]  # internal access
-    instrs = json.loads(body.json)["instructions"]
+    instrs = build_body(b._builder)["instructions"]  # pyright: ignore[reportPrivateUsage]  # internal access
     puts = [i for i in instrs if "PutLastInstructionOutputOnWorkspace" in i]
     assert len(puts) == 1
     await client.aclose()

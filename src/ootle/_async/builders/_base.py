@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
+from ootle._async._max_epoch import ensure_max_epoch
 from ootle._transaction_builder import TransactionBuilder
 from ootle._types.want_input import WantInput
 from ootle.errors import InvalidArgumentError
@@ -76,5 +77,6 @@ class BuilderBase:
         Subclasses can override if they need to do work after the
         builder has emitted but before the resolver runs.
         """
+        await ensure_max_epoch(self._client, self._builder)
         unsigned = self._builder.build_unsigned()
         return await self._client.resolver.resolve(unsigned, self._want_list)
