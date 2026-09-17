@@ -19,9 +19,10 @@ _MAX_BLOBS = 256
 DEFAULT_MAX_EPOCH_WINDOW = 10
 """Epochs past the current one that client-side builders grant a transaction by default.
 
-Mirrors the window the ``ootle-rs`` docs use (``get_epoch() + 10``). ``max_epoch`` is
-mandatory on ``UnsignedTransactionV1``, so a builder with no explicit bound resolves
-one from the live network epoch at ``prepare()`` time.
+Matches the window the upstream crate's own usage example picks
+(``crates/wallet/ootle-rs/src/lib.rs:44``: ``Epoch(provider.get_epoch().await?.as_u64()
++ 10)``). ``max_epoch`` is mandatory on ``UnsignedTransactionV1``, so a builder with no
+explicit bound resolves one from the live network epoch at ``prepare()`` time.
 """
 
 
@@ -82,7 +83,7 @@ class UnsignedTransactionV1Body:
 
             msg = (
                 "max_epoch is required — call TransactionBuilder.with_max_epoch(epoch) "
-                "(e.g. await client.get_epoch() + DEFAULT_MAX_EPOCH_WINDOW)"
+                "(e.g. await client.get_epoch() + 10)"
             )
             raise InvalidArgumentError(msg)
         return {

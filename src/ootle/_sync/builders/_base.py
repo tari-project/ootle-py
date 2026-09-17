@@ -75,7 +75,9 @@ class BuilderBase:
         """Default ``prepare()`` — builds + resolves the want-list.
 
         Subclasses can override if they need to do work after the
-        builder has emitted but before the resolver runs.
+        builder has emitted but before the resolver runs. An override must
+        keep the ``ensure_max_epoch`` call — ``max_epoch`` is mandatory, so
+        dropping it fails the build rather than degrading quietly.
         """
         ensure_max_epoch(self._client, self._builder)
         unsigned = self._builder.build_unsigned()

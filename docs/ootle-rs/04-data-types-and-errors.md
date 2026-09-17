@@ -144,7 +144,7 @@ These come from upstream crates and are used directly by the public API:
   `EncryptedData`, `PedersenCommitmentBytes`, `RistrettoPublicKeyBytes`,
   `StealthOutputsStatement`, `StealthInputsStatement`,
   `StealthTransferStatement`, `StealthInput`, `StealthUnspentOutput`,
-  `SpendCondition`, `UtxoTag`, `FunctionName`.
+  `SpendAuthorization`, `SpendCondition`, `UtxoTag`, `FunctionName`.
 
 ## Error taxonomy
 
