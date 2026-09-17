@@ -5,10 +5,10 @@ Mirrors ``crates/template_lib_types/src/stealth/unspent_output.rs``:
 - :class:`UnspentOutput` — the body of a stealth UTXO (commitment,
   sender nonce, encrypted data, minimum-value promise, optional
   viewable-balance proof).
-- :class:`StealthUnspentOutput` — UTXO body + spend condition + UTXO
+- :class:`StealthUnspentOutput` — UTXO body + spend authorisation + UTXO
   tag, the shape an output statement carries.
 
-The ``spend_condition`` is round-tripped as a raw dict so callers own
+The ``auth`` (``SpendAuthorization``) is round-tripped as a raw dict so callers own
 the discriminated-union shape — Python ``match`` works naturally on
 string keys.
 """
@@ -91,10 +91,10 @@ class UnspentOutput:
 
 @dataclass(frozen=True, slots=True)
 class StealthUnspentOutput:
-    """Stealth UTXO envelope: body + spend condition + UTXO tag."""
+    """Stealth UTXO envelope: body + spend authorisation + UTXO tag."""
 
     output: UnspentOutput
-    spend_condition: dict[str, Any]
+    auth: dict[str, Any]
     tag: int
 
     def __post_init__(self) -> None:
@@ -106,13 +106,13 @@ class StealthUnspentOutput:
     def from_json(cls, data: dict[str, Any]) -> Self:
         return cls(
             output=UnspentOutput.from_json(require_dict(data, "output")),
-            spend_condition=require_dict(data, "spend_condition"),
+            auth=require_dict(data, "auth"),
             tag=require_int(data, "tag"),
         )
 
     def to_json(self) -> dict[str, Any]:
         return {
             "output": self.output.to_json(),
-            "spend_condition": self.spend_condition,
+            "auth": self.auth,
             "tag": self.tag,
         }

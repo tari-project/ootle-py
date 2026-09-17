@@ -87,6 +87,11 @@ def _merge_workspace_ids(dst_ws: dict[str, int], src_ws: dict[str, int], *, offs
 def merge_into(dst: TransactionBuilder, src: TransactionBuilder) -> None:
     """Merge *src*'s state into *dst*, remapping workspace ids to avoid conflicts.
 
+    Only instructions, inputs, blobs and workspace labels travel. Envelope
+    fields — ``min_epoch``, ``max_epoch``, ``dry_run``, ``nonce`` — belong to
+    *dst* alone, so a bound set on *src* is dropped. ``max_epoch`` is mandatory,
+    so set it on *dst* (or let ``prepare()`` default it).
+
     Private fields of both builders are aliased into locals up front so the
     rest of the function operates on plain aliases.
     """

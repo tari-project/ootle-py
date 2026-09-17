@@ -66,7 +66,7 @@ def _stub_utxo(httpx_mock: HTTPXMock, vec: dict[str, Any], commitment: bytes) ->
         "minimum_value_promise": 0,
         "viewable_balance": None,
     }
-    inner = {"output": body, "spend_condition": {"Signed": vec["sender_public_nonce"]}, "tag": 0}
+    inner = {"output": body, "auth": {"Key": vec["sender_public_nonce"]}, "tag": 0}
     sub_id = utxo_substate_id(RESOURCE, commitment)
     httpx_mock.add_response(
         url=f"http://idx/substates/{quote(sub_id.opaque, safe='')}",

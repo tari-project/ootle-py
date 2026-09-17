@@ -8,7 +8,7 @@ from ootle import AsyncOotleClient, LocalSigner, OotleSecretKey, OotleWallet
 from ootle._crypto._wasm_provider import WasmCryptoProvider
 from ootle._types.address import ComponentAddress, ResourceAddress
 from ootle._types.network import Network
-from tests._async._helpers import network_response
+from tests._async._helpers import mock_network
 
 if TYPE_CHECKING:
     from pytest_httpx import HTTPXMock
@@ -74,7 +74,7 @@ def stub_substates_for_account(httpx_mock: HTTPXMock, signer_account: str) -> No
                                     "minimum_value_promise": 0,
                                     "viewable_balance": None,
                                 },
-                                "spend_condition": {"Signed": "ff" * 32},
+                                "auth": {"Key": "ff" * 32},
                                 "tag": 1,
                             },
                             "is_frozen": False,
@@ -104,7 +104,7 @@ async def make_client(
     end-to-end (no network). Pass an explicit ``crypto=`` (e.g. a
     non-stealth object) to exercise the provider-validation guard.
     """
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     wallet = make_wallet()
     signer_account = str(wallet.default_address.to_component_address())
     stub_substates_for_account(httpx_mock, signer_account)

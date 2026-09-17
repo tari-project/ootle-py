@@ -76,9 +76,12 @@ def test_generate_outputs_statement_empty(provider: WasmCryptoProvider) -> None:
 
 
 def test_generate_outputs_statement_honours_access_rule(provider: WasmCryptoProvider) -> None:
+    """``PayTo::AccessRule`` gates the output on a condition tree, not a key (TIP-0006)."""
     output = _make_output(provider, 500, pay_to={"AccessRule": "AllowAll"})
     result = provider.generate_outputs_statement(specs=[output], revealed_output_amount=0)
-    assert result.statement.outputs[0].spend_condition == {"AccessRule": "AllowAll"}
+    auth = result.statement.outputs[0].auth
+    assert set(auth) == {"Script"}
+    assert len(bytes.fromhex(auth["Script"])) == 32
 
 
 def test_outputs_statement_aggregates_single_witness(provider: WasmCryptoProvider) -> None:

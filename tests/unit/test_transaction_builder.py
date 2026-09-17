@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from ootle import TransactionBuilder
@@ -15,10 +13,11 @@ from ootle._types.amount import TARI, Amount
 from ootle._types.network import Network
 from ootle._types.substate import SubstateId, SubstateRequirement
 from ootle.errors import InvalidArgumentError
+from tests._helpers.builder import build_body
 
 
 def test_empty_builder_emits_minimal_envelope() -> None:
-    body = json.loads(TransactionBuilder(Network.LOCAL_NET).build_unsigned().json)
+    body = build_body(TransactionBuilder(Network.LOCAL_NET))
     assert body["network"] == 0x10
     assert body["fee_instructions"] == []
     assert body["instructions"] == []
@@ -29,7 +28,7 @@ def test_empty_builder_emits_minimal_envelope() -> None:
 
 def test_call_method_emits_correct_shape() -> None:
     builder = TransactionBuilder(Network.LOCAL_NET).call_method("component_xyz", "method_name")
-    body = json.loads(builder.build_unsigned().json)
+    body = build_body(builder)
     assert len(body["instructions"]) == 1
     instr = body["instructions"][0]
     assert "CallMethod" in instr
@@ -39,12 +38,7 @@ def test_call_method_emits_correct_shape() -> None:
 
 
 def test_pay_fee_from_component_lands_in_fee_block() -> None:
-    body = json.loads(
-        TransactionBuilder(0)
-        .pay_fee_from_component("component_owner", Amount(500))
-        .build_unsigned()
-        .json
-    )
+    body = build_body(TransactionBuilder(0).pay_fee_from_component("component_owner", Amount(500)))
     assert body["instructions"] == []
     assert len(body["fee_instructions"]) == 1
     fee = body["fee_instructions"][0]["CallMethod"]
@@ -59,7 +53,7 @@ def test_workspace_label_resolution() -> None:
         .put_last_instruction_output_on_workspace("bucket_0")
         .call_method_on_workspace("bucket_0", "deposit")
     )
-    body = json.loads(builder.build_unsigned().json)
+    body = build_body(builder)
     assert body["instructions"][1]["PutLastInstructionOutputOnWorkspace"]["key"] == 0
     deposit = body["instructions"][2]["CallMethod"]
     # `ComponentReference::Workspace(WorkspaceId)` — bare u16, not WorkspaceOffsetId.
@@ -78,7 +72,7 @@ def test_with_fee_instructions_builder_merges_into_fee_block() -> None:
             SubstateRequirement(id=SubstateId(XTR_FAUCET_VAULT_ADDRESS), version=None)
         )
     )
-    body = json.loads(builder.build_unsigned().json)
+    body = build_body(builder)
     assert len(body["fee_instructions"]) == 1
     assert body["fee_instructions"][0]["CallMethod"]["call"] == {
         "Address": XTR_FAUCET_COMPONENT_ADDRESS
@@ -99,7 +93,7 @@ def test_with_fee_instructions_builder_remaps_colliding_workspace_id() -> None:
             ).put_last_instruction_output_on_workspace("fee_bucket")
         )
     )
-    body = json.loads(builder.build_unsigned().json)
+    body = build_body(builder)
     body_key = body["instructions"][1]["PutLastInstructionOutputOnWorkspace"]["key"]
     fee_key = body["fee_instructions"][1]["PutLastInstructionOutputOnWorkspace"]["key"]
     assert body_key == 0
@@ -121,7 +115,7 @@ def test_with_fee_instructions_builder_remaps_workspace_referencing_call() -> No
             )
         )
     )
-    body = json.loads(builder.build_unsigned().json)
+    body = build_body(builder)
     workspace_call = next(
         i["CallMethod"]["call"]
         for i in body["fee_instructions"]
@@ -133,13 +127,11 @@ def test_with_fee_instructions_builder_remaps_workspace_referencing_call() -> No
 
 def test_create_account_emits_owner_pk_hex() -> None:
     pk = b"\xaa" * 32
-    body = json.loads(
+    body = build_body(
         TransactionBuilder(0)
         .call_method("component_a", "take")
         .put_last_instruction_output_on_workspace("bucket")
         .create_account(pk, bucket_workspace_label="bucket")
-        .build_unsigned()
-        .json
     )
     create = body["instructions"][2]["CreateAccount"]
     assert create["owner_public_key"] == "aa" * 32
@@ -148,14 +140,12 @@ def test_create_account_emits_owner_pk_hex() -> None:
 
 
 def test_dry_run_flag_set() -> None:
-    body = json.loads(TransactionBuilder(0).with_dry_run(True).build_unsigned().json)
+    body = build_body(TransactionBuilder(0).with_dry_run(True))
     assert body["dry_run"] is True
 
 
 def test_amount_literal_round_trip_in_pay_fee() -> None:
-    body = json.loads(
-        TransactionBuilder(0).pay_fee_from_component("c", 10 * TARI).build_unsigned().json
-    )
+    body = build_body(TransactionBuilder(0).pay_fee_from_component("c", 10 * TARI))
     arg = body["fee_instructions"][0]["CallMethod"]["args"][0]
     assert "Literal" in arg
     body_bytes = bytes.fromhex(arg["Literal"])

@@ -124,7 +124,7 @@ class LocalSigner:
         whose sender nonce is ``public_nonce`` (Diffie-Hellman of this
         signer's account secret with that nonce), then signs ``tx_json``
         with it. Mirrors Rust ``sign_authorization_with_stealth``; the
-        derived key's public key is the UTXO's ``SpendCondition::Signed``
+        derived key's public key is the UTXO's ``SpendAuthorization::Key``
         value, so the engine accepts the spend.
 
         ``seal_pk`` is the seal signer's owner public key the signing

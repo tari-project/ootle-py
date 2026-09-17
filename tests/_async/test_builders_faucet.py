@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 from pytest_httpx import HTTPXMock
 
@@ -15,8 +13,9 @@ from ootle._types._tari_constants import (
 )
 from ootle._types.network import Network
 from ootle.errors import InvalidArgumentError
+from tests._helpers.builder import build_body
 
-from ._helpers import network_response
+from ._helpers import mock_network
 
 
 def _wallet() -> OotleWallet:
@@ -25,10 +24,10 @@ def _wallet() -> OotleWallet:
 
 
 async def test_faucet_take_funds_emits_full_instruction_block(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     async with AsyncOotleClient.connect("http://idx", wallet=_wallet()) as client:
         builder = client.faucet().take_funds().pay_fee(500)
-        unsigned = json.loads(builder._builder.build_unsigned().json)  # pyright: ignore[reportPrivateUsage]  # internal access
+        unsigned = build_body(builder._builder)  # pyright: ignore[reportPrivateUsage]  # internal access
     fee = unsigned["fee_instructions"]
     # Sequence: CreateAccount → PutOnWorkspace → faucet.take(workspace) → pay_fee
     create = fee[0]["CreateAccount"]
@@ -46,14 +45,14 @@ async def test_faucet_take_funds_emits_full_instruction_block(httpx_mock: HTTPXM
 
 
 async def test_faucet_without_wallet_raises_at_default_signer(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     async with AsyncOotleClient.connect("http://idx") as client:
         with pytest.raises(InvalidArgumentError):
             _ = client.faucet().default_signer_address
 
 
 async def test_faucet_fluent_returns_self(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     async with AsyncOotleClient.connect("http://idx", wallet=_wallet()) as client:
         b = client.faucet()
         assert b.take_funds() is b

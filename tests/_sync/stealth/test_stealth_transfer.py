@@ -24,6 +24,7 @@ from ootle._sync.stealth.transfer import StealthTransfer
 from ootle._types.stealth import Output, StealthOutputsStatement, StealthTransferStatement
 from ootle._types.transaction import UnsignedTransaction
 from ootle.errors import InvalidArgumentError
+from tests._helpers.builder import build_body
 from tests._helpers.instructions import kinds_and_methods
 
 from ._builder_helpers import COMPONENT, RESOURCE, make_client, recipient_address
@@ -77,7 +78,7 @@ def test_second_spend_revealed_input_raises(httpx_mock: HTTPXMock) -> None:
     b = StealthTransfer(client, RESOURCE).spend_revealed_input(COMPONENT, 100)
     with pytest.raises(InvalidArgumentError):
         b.spend_revealed_input(COMPONENT, 50)
-    instrs = json.loads(b._builder.build_unsigned().json)["instructions"]  # pyright: ignore[reportPrivateUsage]  # internal access
+    instrs = build_body(b._builder)["instructions"]  # pyright: ignore[reportPrivateUsage]  # internal access
     puts = [i for i in instrs if "PutLastInstructionOutputOnWorkspace" in i]
     assert len(puts) == 1
     client.close()

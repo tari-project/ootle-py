@@ -1,7 +1,7 @@
 """``create_stealth_authorizations`` — spend-signing a stealth input.
 
 Covers the gap-#4 fix: a spent stealth UTXO carries
-``spend_condition: Signed(<one-time pk>)``, so the transaction must carry
+``auth: Key(<one-time pk>)``, so the transaction must carry
 a signature from that one-time key. These tests drive the real WASM
 provider where it matters (the derivation + signature must use the
 one-time key, never the raw account key) and exercise the guards.

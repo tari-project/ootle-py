@@ -20,7 +20,7 @@ from ootle.errors import InvalidArgumentError
 from tests._helpers.crypto import MockCryptoProvider
 from tests._helpers.sse import fake_connect_sse
 
-from ._helpers import network_response
+from ._helpers import mock_network
 
 
 def _wallet() -> OotleWallet:
@@ -37,7 +37,7 @@ def _stub_events_stream(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_seal_unsigned_transaction(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     with OotleClient.connect("http://idx", wallet=_wallet(), crypto=MockCryptoProvider()) as client:
         unsigned = UnsignedTransaction(json="{}")
         sealed = client.seal_transaction(unsigned)
@@ -46,14 +46,14 @@ def test_seal_unsigned_transaction(httpx_mock: HTTPXMock) -> None:
 
 
 def test_seal_request_without_transaction_raises(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     with OotleClient.connect("http://idx", wallet=_wallet(), crypto=MockCryptoProvider()) as client:
         with pytest.raises(InvalidArgumentError):
             client.seal_transaction(TransactionRequest())
 
 
 def test_seal_without_wallet_raises(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     with OotleClient.connect("http://idx", crypto=MockCryptoProvider()) as client:
         with pytest.raises(InvalidArgumentError):
             client.seal_transaction(UnsignedTransaction(json="{}"))
@@ -63,7 +63,7 @@ def test_send_transaction_returns_pending_handle(
     httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _stub_events_stream(monkeypatch)
-    httpx_mock.add_response(url="http://idx/network", json=network_response())
+    mock_network(httpx_mock)
     httpx_mock.add_response(
         url="http://idx/transactions", method="POST", json={"transaction_id": "tx_xyz"}
     )

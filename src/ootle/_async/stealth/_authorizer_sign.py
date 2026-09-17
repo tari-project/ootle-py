@@ -3,7 +3,7 @@
 Split out of ``authorizer.py`` to respect the 200-line ceiling. Mirrors
 Rust ``WalletStealthAuthorizer::create_authorizations``
 (:file:`crates/wallet/ootle-rs/src/wallet/stealth.rs`): every spent
-stealth-input UTXO carries ``spend_condition: Signed(<one-time pk>)``, so
+stealth-input UTXO carries ``auth: Key(<one-time pk>)``, so
 the transaction must include a signature from the matching one-time
 secret. Each required signer derives that secret from the UTXO's sender
 ``public_nonce`` and its account secret (see

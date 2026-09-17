@@ -5,6 +5,41 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [0.2.0] — 2026-09-17
+
+### Changed
+
+- **Vendored `ootle-wasm` bumped to 0.41.0** (from the locally built
+  `0.31.0-local`), tracking the upstream
+  [`tari-ootle` v0.41.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.41.0)
+  release. The blob's `__wbg_*` host-import names were refreshed to match.
+- **`max_epoch` is now mandatory on the wire.** Upstream turned
+  `UnsignedTransactionV1.max_epoch` from `Option<Epoch>` into a required
+  `Epoch`: every transaction carries a bounded validity window. Builders
+  reached through a client (`client.faucet()`, `client.account()`,
+  `client.component()`, `StealthTransfer`) default it inside `prepare()` to
+  `current_epoch + 10` — one extra `GET /network` round-trip — so existing
+  code keeps working. `TransactionBuilder` used standalone must now call
+  `with_max_epoch(...)` before `build_unsigned()`, which otherwise raises
+  `InvalidArgumentError`. `with_max_epoch()` no longer accepts `None`.
+- **Stealth outputs carry `auth` instead of `spend_condition` (TIP-0006).**
+  `StealthUnspentOutput.spend_condition` is renamed to
+  `StealthUnspentOutput.auth` and now holds a `SpendAuthorization`:
+  `{"Key": <one-time pk>}` (was `{"Signed": ...}`), `{"Script": <condition
+  root>}`, or `{"KeyAndScript": {...}}`. `Output(pay_to={"AccessRule": ...})`
+  consequently produces a `Script` condition-tree root rather than passing the
+  access rule through verbatim.
+
+### Added
+
+- **`TransactionBuilder.with_nonce()`** and the `nonce` envelope field, new in
+  upstream `UnsignedTransactionV1`. The transaction id excludes the seal
+  signature, so two identical bodies sealed by the same key are the *same*
+  transaction; stamp a distinct nonce when each submission must execute
+  independently. Defaults to `0`, matching upstream.
+- **`TransactionBuilder.max_epoch`** — read back the configured bound
+  (`None` while unset).
+
 ## [0.1.1] — 2026-05-25
 
 ### Fixed
