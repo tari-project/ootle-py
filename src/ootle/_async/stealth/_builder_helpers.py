@@ -21,6 +21,8 @@ from ootle._types.substate import SubstateId
 from ootle._types.want_input import WantInput
 from ootle.errors import InvalidArgumentError
 
+_PUBLIC_KEY_LEN = 32
+
 if TYPE_CHECKING:
     from ootle._async.builders._base import WantInputItem
     from ootle._transaction_builder import TransactionBuilder
@@ -40,6 +42,8 @@ class StealthTransferState:
     revealed_input_amount: int = 0
     outputs: list[Output] = field(default_factory=list["Output"])
     revealed_output_amount: int = 0
+    revealed_receiver: bytes | None = None
+    """Set only when the caller named one; otherwise the sealing key takes the revealed output."""
     fee_from_revealed: bool = False
 
     def total_output_amount(self) -> int:
@@ -72,6 +76,28 @@ def ensure_positive(amount: int, *, label: str) -> int:
         msg = f"{label} must be positive, got {amount}"
         raise InvalidArgumentError(msg)
     return amount
+
+
+def add_revealed_output(state: StealthTransferState, amount: int, receiver: bytes | None) -> None:
+    """Accumulate a revealed output, mirroring Rust ``to_revealed_output[_for]``.
+
+    Revealing zero is a no-op, ``receiver`` included. One transfer reveals to
+    one key, so naming a second, different receiver is rejected.
+    """
+    if amount < 0:
+        msg = f"to_revealed_output amount must not be negative, got {amount}"
+        raise InvalidArgumentError(msg)
+    if amount == 0:
+        return
+    if receiver is not None:
+        if len(receiver) != _PUBLIC_KEY_LEN:
+            msg = f"revealed receiver must be {_PUBLIC_KEY_LEN} bytes, got {len(receiver)}"
+            raise InvalidArgumentError(msg)
+        if state.revealed_receiver not in (None, receiver):
+            msg = "revealed output is already assigned to a different receiver"
+            raise InvalidArgumentError(msg)
+        state.revealed_receiver = receiver
+    state.revealed_output_amount += amount
 
 
 def add_stealth_input_want(

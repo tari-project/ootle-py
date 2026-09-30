@@ -27,8 +27,22 @@ explicit bound resolves one from the live network epoch at ``prepare()`` time.
 
 
 def substate_requirement_to_json(req: SubstateRequirement) -> dict[str, Any]:
-    """Render a :class:`SubstateRequirement` into its wire JSON form."""
-    return {"substate_id": req.id.opaque, "version": req.version}
+    """Render a :class:`SubstateRequirement` into its ``InputDeclaration`` wire form."""
+    return {"substate_id": req.id.opaque, "version": req.version, "is_write": req.is_write}
+
+
+def declare_input(inputs: list[SubstateRequirement], req: SubstateRequirement) -> None:
+    """Add ``req`` to ``inputs``, merging with an existing declaration of the same substate.
+
+    Mirrors upstream ``declare_input``: the engine rejects a transaction that
+    declares one substate twice, and the merged declaration keeps its original
+    position because the signing preimage depends on the order.
+    """
+    for i, existing in enumerate(inputs):
+        if existing.id == req.id:
+            inputs[i] = existing.merge(req)
+            return
+    inputs.append(req)
 
 
 @dataclass(slots=True)
@@ -44,9 +58,8 @@ class FeeBlock:
     inputs: list[SubstateRequirement] = field(default_factory=list["SubstateRequirement"])
 
     def add_input(self, req: SubstateRequirement) -> None:
-        """Append ``req`` if not already present (deduplicates by equality)."""
-        if all(req != existing for existing in self.inputs):
-            self.inputs.append(req)
+        """Declare ``req``, merging with any existing declaration of the same substate."""
+        declare_input(self.inputs, req)
 
 
 @dataclass(slots=True)
@@ -111,9 +124,8 @@ class UnsignedTransactionV1Body:
         return idx
 
     def add_input(self, req: SubstateRequirement) -> None:
-        """Append ``req`` if not already present (deduplicates by equality)."""
-        if all(req != existing for existing in self.inputs):
-            self.inputs.append(req)
+        """Declare ``req``, merging with any existing declaration of the same substate."""
+        declare_input(self.inputs, req)
 
 
 def substate_id_to_unversioned_requirement(sub_id: SubstateId) -> SubstateRequirement:

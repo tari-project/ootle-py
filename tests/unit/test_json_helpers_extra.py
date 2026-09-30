@@ -12,6 +12,8 @@ from ootle._types._json import (
     parse_receipt,
     parse_sse_event,
 )
+from ootle._types.diff_summary import DownSubstate
+from ootle._types.substate import SubstateId
 
 _FEE_RECEIPT: dict[str, Any] = {
     "total_fee_payment": 0,
@@ -48,6 +50,12 @@ def test_parse_receipt_rejects_non_string_log_entry() -> None:
 
 def test_parse_diff_summary_empty_when_upped_missing() -> None:
     assert parse_diff_summary({}).upped == ()
+    assert parse_diff_summary({}).downed == ()
+
+
+def test_parse_diff_summary_downed() -> None:
+    summary = parse_diff_summary({"upped": [], "downed": [{"substate_id": "utxo_x", "version": 4}]})
+    assert summary.downed == (DownSubstate(SubstateId("utxo_x"), 4),)
 
 
 def test_parse_diff_summary_rejects_non_list_upped() -> None:

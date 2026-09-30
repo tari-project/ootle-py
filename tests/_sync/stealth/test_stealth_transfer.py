@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
+from tests._helpers.stealth import REVEALED_RECEIVER
 from ootle._sync.stealth.authorizer import WalletStealthAuthorizer
 from ootle._sync.stealth.transfer import StealthTransfer
 from ootle._types.stealth import Output, StealthOutputsStatement, StealthTransferStatement
@@ -163,7 +164,7 @@ def _fake_spec() -> Any:
     from ootle._sync.stealth._spec import StealthTransferSpec  # noqa: PLC0415
     from ootle._types.stealth.requirements import SignatureRequirements  # noqa: PLC0415
 
-    statement = StealthTransferStatement.revealed_only(1, 1)
+    statement = StealthTransferStatement.revealed_only(1, 1, REVEALED_RECEIVER)
     state = StealthTransferState(
         resource=RESOURCE, revealed_input_amount=1, revealed_output_amount=1
     )

@@ -14,10 +14,12 @@ from ootle._types.stealth import (
     BalanceProofSignature,
     Mask,
     Output,
+    RevealedOutput,
     StealthInputsStatement,
     StealthTransferStatement,
 )
 from ootle.errors import CryptoBridgeError
+from tests._helpers.stealth import REVEALED_RECEIVER
 
 from ._wasm_witness import output_witness, outputs_statement
 
@@ -49,7 +51,7 @@ def _single_witness(provider: WasmCryptoProvider, amount: int) -> StealthOutputs
 def test_generate_outputs_statement_round_trips(provider: WasmCryptoProvider) -> None:
     """A statement built from a real Output validates as a balanced transfer."""
     result = provider.generate_outputs_statement(
-        specs=[_make_output(provider, 1000)], revealed_output_amount=0
+        specs=[_make_output(provider, 1000)], revealed_output=None
     )
     assert isinstance(result, StealthOutputsStatementResult)
     assert len(result.statement.outputs) == 1
@@ -60,6 +62,7 @@ def test_generate_outputs_statement_round_trips(provider: WasmCryptoProvider) ->
         output_mask=result.output_mask,
         inputs_statement_json=json.dumps({"inputs": [], "revealed_amount": 1000}),
         outputs_statement_json=json.dumps(result.statement.to_json()),
+        covenant_claims_json="[]",
     )
     transfer = StealthTransferStatement(
         inputs_statement=StealthInputsStatement.new_revealed_only(1000),
@@ -70,15 +73,16 @@ def test_generate_outputs_statement_round_trips(provider: WasmCryptoProvider) ->
 
 
 def test_generate_outputs_statement_empty(provider: WasmCryptoProvider) -> None:
-    result = provider.generate_outputs_statement(specs=(), revealed_output_amount=100)
+    revealed = RevealedOutput(100, REVEALED_RECEIVER)
+    result = provider.generate_outputs_statement(specs=(), revealed_output=revealed)
     assert result.statement.outputs == ()
-    assert result.statement.revealed_output_amount == 100
+    assert result.statement.revealed_output == revealed
 
 
 def test_generate_outputs_statement_honours_access_rule(provider: WasmCryptoProvider) -> None:
     """``PayTo::AccessRule`` gates the output on a condition tree, not a key (TIP-0006)."""
     output = _make_output(provider, 500, pay_to={"AccessRule": "AllowAll"})
-    result = provider.generate_outputs_statement(specs=[output], revealed_output_amount=0)
+    result = provider.generate_outputs_statement(specs=[output], revealed_output=None)
     auth = result.statement.outputs[0].auth
     assert set(auth) == {"Script"}
     assert len(bytes.fromhex(auth["Script"])) == 32
@@ -107,6 +111,7 @@ def test_generate_balance_proof_signature_returns_64_bytes(
         output_mask=result.output_mask,
         inputs_statement_json=json.dumps({"inputs": [], "revealed_amount": 1000}),
         outputs_statement_json=json.dumps(result.statement.to_json()),
+        covenant_claims_json="[]",
     )
     assert len(sig) == 64
 
@@ -132,6 +137,7 @@ def test_validate_transfer_accepts_valid_rejects_tampered(
         output_mask=result.output_mask,
         inputs_statement_json=json.dumps({"inputs": [], "revealed_amount": 1000}),
         outputs_statement_json=json.dumps(result.statement.to_json()),
+        covenant_claims_json="[]",
     )
     provider.validate_transfer(_build_transfer(raw_sig, 1000, result))
 

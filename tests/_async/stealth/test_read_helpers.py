@@ -114,6 +114,10 @@ def test_wallet_generate_outputs_statement_routes_to_provider() -> None:
     )
     out = wallet.generate_outputs_statement([], revealed=500)
     assert out.outputs_statement.revealed_output_amount == 500
+    # The default account key seals the faucet claim, so it takes the revealed output.
+    revealed = out.outputs_statement.revealed_output
+    assert revealed is not None
+    assert revealed.receiver == wallet.default_address.owner_pk
 
 
 def test_wallet_generate_outputs_statement_signs_balance_proof() -> None:

@@ -42,6 +42,7 @@ if TYPE_CHECKING:
         DecryptedData,
         Mask,
         Output,
+        RevealedOutput,
         StealthOutputsStatement,
         StealthTransferStatement,
     )
@@ -76,7 +77,7 @@ class StealthCryptoProvider(Protocol):
     def generate_outputs_statement(
         self,
         specs: Sequence[Output],
-        revealed_output_amount: int,
+        revealed_output: RevealedOutput | None,
     ) -> StealthOutputsStatementResult:
         """Generate the output half of a stealth transfer.
 
@@ -90,8 +91,13 @@ class StealthCryptoProvider(Protocol):
         output_mask: Mask,
         inputs_statement_json: str,
         outputs_statement_json: str,
+        covenant_claims_json: str,
     ) -> bytes:
-        """Sign the ``inputs == outputs`` balance proof. Returns 64 bytes."""
+        """Sign the ``inputs == outputs`` balance proof. Returns 64 bytes.
+
+        The proof commits to ``covenant_claims_json`` — the transfer's
+        ``covenant_claims`` JSON array (``"[]"`` when there are none).
+        """
         ...
 
     def unblind_output(

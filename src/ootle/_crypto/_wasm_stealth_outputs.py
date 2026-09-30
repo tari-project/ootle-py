@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from ootle._crypto._bridge import Bridge
-    from ootle._types.stealth import Output, StealthTransferStatement
+    from ootle._types.stealth import Output, RevealedOutput, StealthTransferStatement
 
 
 def _pay_to_json(pay_to: dict[str, Any]) -> str | None:
@@ -49,11 +49,11 @@ class WasmStealthOutputsMixin:
     def generate_outputs_statement(
         self,
         specs: Sequence[Output],
-        revealed_output_amount: int,
+        revealed_output: RevealedOutput | None,
     ) -> StealthOutputsStatementResult:
         witnesses = [self._create_output_witness(spec) for spec in specs]
         witnesses_json = "[" + ",".join(witnesses) + "]"
-        return self._outputs_statement_from_witnesses(witnesses_json, revealed_output_amount)
+        return self._outputs_statement_from_witnesses(witnesses_json, revealed_output)
 
     def _create_output_witness(self, output: Output) -> str:
         """Marshal one :class:`Output` into a witness JSON via ``createStealthOutputWitness``.
@@ -96,20 +96,22 @@ class WasmStealthOutputsMixin:
     def _outputs_statement_from_witnesses(
         self,
         witnesses_json: str,
-        revealed_output_amount: int,
+        revealed_output: RevealedOutput | None,
     ) -> StealthOutputsStatementResult:
         """Drive ``generateStealthOutputsStatement`` from ready-made witnesses.
 
         The WASM back-half of :meth:`generate_outputs_statement`: it takes
         the witness-array JSON the per-output front-half produced and
-        returns the aggregated statement plus output mask.
+        returns the aggregated statement plus output mask. The export reads
+        a zero amount as "no revealed output" and ignores the receiver then.
         """
+        amount = 0 if revealed_output is None else revealed_output.amount
+        receiver = b"" if revealed_output is None else revealed_output.receiver
         b = self._bridge
         with b.lock:
             jp, jl = _abi.alloc_str(b, witnesses_json)
-            ret = b.exports["generateStealthOutputsStatement"](
-                b.store, jp, jl, revealed_output_amount
-            )
+            rp, rl = _abi.alloc_bytes(b, receiver)
+            ret = b.exports["generateStealthOutputsStatement"](b.store, jp, jl, amount, rp, rl)
             box = take_box_result(b, ret, context="generate_outputs_statement")
             with open_box(b, box, "__wbg_stealthoutputsresult_free") as acc:
                 stmt = acc.read_optional_str("__wbg_get_stealthoutputsresult_statement_json")
@@ -126,6 +128,7 @@ class WasmStealthOutputsMixin:
         output_mask: Mask,
         inputs_statement_json: str,
         outputs_statement_json: str,
+        covenant_claims_json: str,
     ) -> bytes:
         b = self._bridge
         with b.lock:
@@ -133,8 +136,9 @@ class WasmStealthOutputsMixin:
             op, ol = _abi.alloc_bytes(b, output_mask.raw)
             sp, sl = _abi.alloc_str(b, inputs_statement_json)
             tp, tl = _abi.alloc_str(b, outputs_statement_json)
+            cp, cl = _abi.alloc_str(b, covenant_claims_json)
             ret = b.exports["generateStealthBalanceProofSignature"](
-                b.store, ip, il, op, ol, sp, sl, tp, tl
+                b.store, ip, il, op, ol, sp, sl, tp, tl, cp, cl
             )
             box = take_box_result(b, ret, context="generate_balance_proof_signature")
             with open_box(b, box, "__wbg_schnorrsignatureresult_free") as acc:

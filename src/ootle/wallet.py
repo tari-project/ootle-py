@@ -179,9 +179,14 @@ class OotleWallet:
         )
 
     def generate_outputs_statement(
-        self, specs: Sequence[Output], revealed: int
+        self, specs: Sequence[Output], revealed: int, *, receiver: bytes | None = None
     ) -> StealthTransferStatement:
-        """Generate a stealth outputs statement for ``specs`` + revealed amount."""
+        """Generate a stealth outputs statement for ``specs`` + revealed amount.
+
+        ``receiver`` is the key authorised to take the revealed output; it
+        defaults to the default account key, which seals the transaction.
+        """
         from ootle._wallet_stealth import generate_outputs_statement  # noqa: PLC0415
 
-        return generate_outputs_statement(self._crypto, specs, revealed)
+        key = self.default_address.owner_pk if receiver is None else receiver
+        return generate_outputs_statement(self._crypto, specs, revealed, key)

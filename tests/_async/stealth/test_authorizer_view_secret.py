@@ -41,7 +41,9 @@ def _stealth_input_spec(commitment: bytes) -> StealthTransferSpec:
         inputs_statement=StealthInputsStatement(
             inputs=(StealthInput(commitment=commitment),), revealed_amount=0
         ),
-        outputs_statement=StealthOutputsStatement.new_revealed_only(0),
+        outputs_statement=StealthOutputsStatement(
+            outputs=(), revealed_output=None, agg_range_proof=b""
+        ),
     )
     state = StealthTransferState(resource=RESOURCE)
     state.inputs_to_spend[recipient_address()] = StealthInput(commitment=commitment)

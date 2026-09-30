@@ -17,6 +17,7 @@ from tests._async.stealth._builder_helpers import (
     make_client,
     make_wallet,
 )
+from tests._helpers.stealth import REVEALED_RECEIVER
 
 
 async def test_prepare_requires_inputs(httpx_mock: HTTPXMock) -> None:
@@ -75,7 +76,7 @@ async def test_prepare_rejects_unexpected_provider_result_shape(
 def test_result_helper_constructs_stealth_outputs_result() -> None:
     """Smoke check on :class:`StealthOutputsStatementResult` typing."""
     res = StealthOutputsStatementResult(
-        statement=StealthOutputsStatement.new_revealed_only(1),
+        statement=StealthOutputsStatement.new_revealed_only(1, REVEALED_RECEIVER),
         output_mask=Mask(raw=b"\x00" * 32),
     )
     assert res.statement.revealed_output_amount == 1

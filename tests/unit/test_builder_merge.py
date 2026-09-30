@@ -6,6 +6,7 @@ from ootle import TransactionBuilder
 from ootle._types.network import Network
 from ootle._types.substate import SubstateId, SubstateRequirement
 from tests._helpers.builder import build_body
+from tests._helpers.stealth import REVEALED_RECEIVER
 
 
 def test_merge_remaps_workspace_ids_when_dst_already_has_buckets() -> None:
@@ -89,7 +90,7 @@ def test_merge_remaps_stealth_transfer_revealed_input_bucket() -> None:
     src.add_instruction(
         StealthTransferInstruction(
             resource=ResourceAddress(TARI_TOKEN),
-            statement=StealthTransferStatement.revealed_only(100, 100),
+            statement=StealthTransferStatement.revealed_only(100, 100, REVEALED_RECEIVER),
             revealed_input_bucket=WorkspaceOffsetId(id=0),
         )
     )

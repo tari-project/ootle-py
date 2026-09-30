@@ -17,6 +17,7 @@ from ootle._types.stealth._proofs import (
     BalanceProofSignature,
     ViewableBalanceProof,
 )
+from ootle._types.stealth._revealed import RevealedOutput
 from ootle._types.stealth._substate_utxo import (
     ElgamalVerifiableBalance,
     StealthOutputBody,
@@ -50,6 +51,7 @@ __all__ = [
     "Mask",
     "OneTimePublicKey",
     "Output",
+    "RevealedOutput",
     "SignatureRequirements",
     "StealthInput",
     "StealthInputsStatement",

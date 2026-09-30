@@ -26,6 +26,7 @@ from ootle._sync.client import OotleClient
 from ootle._sync.stealth.authorizer import WalletStealthAuthorizer
 from ootle._sync.stealth.transfer import StealthTransfer
 from ootle._transaction_builder import TransactionBuilder
+from ootle._types._execution_failure_code import ExecutionFailureCode
 from ootle._types._tari_constants import TARI_TOKEN
 from ootle._types.address import (
     Address,
@@ -35,7 +36,7 @@ from ootle._types.address import (
     TemplateAddress,
 )
 from ootle._types.amount import TARI, Amount
-from ootle._types.diff_summary import DiffSummary, UpSubstate
+from ootle._types.diff_summary import DiffSummary, DownSubstate, UpSubstate
 from ootle._types.events import TransactionEventFilter
 from ootle._types.keys import OotlePublicKey, OotleSecretKey
 from ootle._types.network import Network, default_indexer_url
@@ -61,6 +62,7 @@ from ootle._types.stealth import (
     EncryptedData,
     OneTimePublicKey,
     Output,
+    RevealedOutput,
     SignatureRequirements,
     StealthInputsStatement,
     StealthOutputsStatement,
@@ -112,9 +114,11 @@ __all__ = [
     "DecryptedData",
     "DefaultSignerNotSetError",
     "DiffSummary",
+    "DownSubstate",
     "DryRunResult",
     "EncryptedData",
     "ExecutionFailure",
+    "ExecutionFailureCode",
     "FailedToLockInputs",
     "FailedToLockOutputs",
     "FeePaymentInMainIntent",
@@ -143,6 +147,7 @@ __all__ = [
     "PendingTransaction",
     "RejectReason",
     "ResourceAddress",
+    "RevealedOutput",
     "SignatureRequirements",
     "Signer",
     "SignerError",

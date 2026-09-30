@@ -13,12 +13,13 @@ from ootle._transaction_builder import TransactionBuilder
 from ootle._types.network import Network
 from ootle._types.stealth import StealthTransferStatement
 from ootle.errors import InvalidArgumentError
+from tests._helpers.stealth import REVEALED_RECEIVER
 
 from ._builder_helpers import make_client
 
 
 def _statement(revealed_input: int = 100) -> StealthTransferStatement:
-    return StealthTransferStatement.revealed_only(revealed_input, revealed_input)
+    return StealthTransferStatement.revealed_only(revealed_input, revealed_input, REVEALED_RECEIVER)
 
 
 def test_apply_take_funds_stealth_requires_account_label() -> None:

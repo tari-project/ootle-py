@@ -15,8 +15,7 @@ the singleton WASM bridge. A ``crypto=`` that does not implement the
 stealth surface makes :meth:`prepare` raise
 :class:`~ootle.errors.InvalidArgumentError`.
 
-Construct via the user-facing builder helper added in Step 06; for
-now, instantiate directly::
+Construct directly::
 
     spec = await (
         StealthTransfer(client, TARI_TOKEN)
@@ -34,6 +33,7 @@ from typing import TYPE_CHECKING, Self
 
 from ootle._sync.stealth._builder_helpers import (
     StealthTransferState,
+    add_revealed_output,
     add_stealth_input_want,
     ensure_positive,
 )
@@ -140,11 +140,13 @@ class StealthTransfer:
         self._state.outputs.append(output)
         return self
 
-    def to_revealed_output(self, amount: Amount | int) -> Self:
-        """Accumulate ``amount`` into the revealed-output bucket."""
-        self._state.revealed_output_amount += ensure_positive(
-            int(amount), label="to_revealed_output amount"
-        )
+    def to_revealed_output(self, amount: Amount | int, *, receiver: bytes | None = None) -> Self:
+        """Accumulate ``amount`` into the revealed-output bucket (zero is a no-op).
+
+        ``receiver`` is the 32-byte key authorised to take it and must sign the
+        transaction; it defaults to the sealing (default account) key.
+        """
+        add_revealed_output(self._state, int(amount), receiver)
         return self
 
     def pay_fee_from_revealed(self, amount: Amount | int) -> Self:

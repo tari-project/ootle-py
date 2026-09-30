@@ -10,6 +10,7 @@ from typing import Any, cast
 
 from ootle._types._bor_value import BinaryTag, iter_object_keys_hex
 from ootle._types._tari_constants import TARI_TOKEN
+from ootle._types._tx_body import declare_input, substate_requirement_to_json
 from ootle._types.substate import (
     ComponentSubstateValue,
     Substate,
@@ -108,10 +109,9 @@ def resolve_vault(
             vault_cached.value.resource_address
         ) == str(resource):
             new_inputs.append(SubstateRequirement(id=vault_id, version=None))
+            # Deposits and withdrawals only read the resource (upstream ``WantInput``).
             if str(resource) != TARI_TOKEN:
-                new_inputs.append(
-                    SubstateRequirement(id=SubstateId(opaque=str(resource)), version=None)
-                )
+                new_inputs.append(SubstateRequirement(SubstateId(str(resource)), is_write=False))
             matched = True
     if matched:
         return True
@@ -177,7 +177,11 @@ def extract_vault_ids(component: Substate) -> list[SubstateId]:
 def fold_inputs(
     unsigned: UnsignedTransaction, new_inputs: list[SubstateRequirement]
 ) -> UnsignedTransaction:
-    """Re-emit ``unsigned`` with ``new_inputs`` merged into its ``inputs`` list."""
+    """Re-emit ``unsigned`` with ``new_inputs`` declared in its ``inputs`` list.
+
+    Declarations merge by substate id (see :func:`declare_input`): the engine
+    rejects a transaction that declares one substate twice.
+    """
     if not new_inputs:
         return unsigned
     payload: Any = json.loads(unsigned.json)
@@ -185,15 +189,12 @@ def fold_inputs(
         msg = "unsigned transaction JSON must be an object"
         raise IndexerClientError(msg, status=None, body="", url="")
     body = cast("dict[str, Any]", payload)
-    existing = cast("list[dict[str, Any]]", body.setdefault("inputs", []))
-    seen = {(e.get("substate_id"), e.get("version")) for e in existing}
+    declared = [
+        SubstateRequirement(SubstateId(e["substate_id"]), e.get("version"), e.get("is_write", True))
+        for e in cast("list[dict[str, Any]]", body.get("inputs") or [])
+    ]
     for req in new_inputs:
-        key = (req.id.opaque, req.version)
-        if key not in seen:
-            existing.append({"substate_id": req.id.opaque, "version": req.version})
-            seen.add(key)
-    # Byte-stable serialisation matters for envelope hashing: keep the
-    # compact separators and rely on CPython's insertion-order dict to
-    # preserve the original key ordering. Do not change format flags
-    # casually — any drift will alter the transaction hash.
+        declare_input(declared, req)
+    body["inputs"] = [substate_requirement_to_json(r) for r in declared]
+    # Compact, insertion-ordered output keeps the envelope hash stable.
     return UnsignedTransaction(json=json.dumps(body, separators=(",", ":")))

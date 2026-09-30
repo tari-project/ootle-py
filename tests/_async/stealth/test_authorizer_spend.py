@@ -30,6 +30,7 @@ from ootle._types.stealth import (
 )
 from ootle._types.transaction import UnsignedTransaction
 from ootle.errors import InvalidArgumentError, KeyProviderNotFoundError
+from tests._helpers.stealth import REVEALED_RECEIVER
 
 from ._builder_helpers import COMPONENT, RESOURCE, make_client
 
@@ -48,7 +49,7 @@ def _spec(
     """A minimal spec carrying ``reqs`` — enough to drive the signing loop."""
     return StealthTransferSpec(
         unsigned=UnsignedTransaction(json=unsigned_json),
-        statement=StealthTransferStatement.revealed_only(1, 1),
+        statement=StealthTransferStatement.revealed_only(1, 1, REVEALED_RECEIVER),
         signature_requirements=reqs,
         output_mask=None,
         state=StealthTransferState(resource=RESOURCE),

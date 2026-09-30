@@ -6,7 +6,12 @@ import json
 
 import pytest
 
-from ootle._async._resolver_helpers import extract_vault_ids, fold_inputs, resolve_all_vaults
+from ootle._async._resolver_helpers import (
+    extract_vault_ids,
+    fold_inputs,
+    resolve_all_vaults,
+    resolve_vault,
+)
 from ootle._types._bor_value import BinaryTag
 from ootle._types._tari_constants import TARI_TOKEN
 from ootle._types.amount import Amount
@@ -62,6 +67,22 @@ def test_resolve_all_vaults_adds_resource_for_non_tari() -> None:
     done = resolve_all_vaults("comp", cache, missing, new_inputs, [])
     assert done is True
     assert {req.id.opaque for req in new_inputs} == {_VAULT, _OTHER_RES}
+    # The called method may alter the resource, so it is declared a write.
+    assert all(req.is_write for req in new_inputs)
+
+
+def test_resolve_vault_declares_its_resource_a_read() -> None:
+    """Deposits and withdrawals only read the resource (upstream ``VaultForResource``)."""
+    cache: dict[SubstateId, Substate] = {
+        SubstateId("comp"): component_substate("comp", {_OTHER_RES: _VAULT}),
+        SubstateId(_VAULT): vault_substate(_VAULT, _OTHER_RES),
+    }
+    new_inputs: list[SubstateRequirement] = []
+    assert resolve_vault("comp", _OTHER_RES, True, cache, set(), new_inputs, []) is True
+    assert new_inputs == [
+        SubstateRequirement(SubstateId(_VAULT)),
+        SubstateRequirement(SubstateId(_OTHER_RES), is_write=False),
+    ]
 
 
 def test_resolve_all_vaults_non_component_value_returns_done() -> None:
@@ -102,7 +123,28 @@ def test_fold_inputs_no_op_for_empty_list() -> None:
 def test_fold_inputs_dedupes_against_existing_inputs() -> None:
     unsigned = UnsignedTransaction(json='{"inputs": [{"substate_id": "x", "version": null}]}')
     out = fold_inputs(unsigned, [SubstateRequirement(id=SubstateId("x"), version=None)])
-    assert json.loads(out.json)["inputs"] == [{"substate_id": "x", "version": None}]
+    assert json.loads(out.json)["inputs"] == [
+        {"substate_id": "x", "version": None, "is_write": True}
+    ]
+
+
+def test_fold_inputs_merges_declarations_of_one_substate() -> None:
+    """Upstream rejects a substate declared twice: a read merges into a write, keeping its slot."""
+    unsigned = UnsignedTransaction(
+        json='{"inputs": [{"substate_id": "x", "version": 3, "is_write": false},'
+        ' {"substate_id": "y", "version": null}]}'
+    )
+    out = fold_inputs(
+        unsigned,
+        [
+            SubstateRequirement(id=SubstateId("x"), version=None),
+            SubstateRequirement(id=SubstateId("y"), version=7, is_write=False),
+        ],
+    )
+    assert json.loads(out.json)["inputs"] == [
+        {"substate_id": "x", "version": 3, "is_write": True},
+        {"substate_id": "y", "version": 7, "is_write": True},
+    ]
 
 
 def test_fold_inputs_rejects_non_object_payload() -> None:
@@ -117,5 +159,6 @@ def test_fold_inputs_uses_compact_byte_stable_serialisation() -> None:
     out = fold_inputs(unsigned, [SubstateRequirement(id=SubstateId("x"), version=None)])
     # No spaces after separators; original key order preserved.
     assert out.json == (
-        '{"fee_instructions":[],"instructions":[],"inputs":[{"substate_id":"x","version":null}]}'
+        '{"fee_instructions":[],"instructions":[],'
+        '"inputs":[{"substate_id":"x","version":null,"is_write":true}]}'
     )

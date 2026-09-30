@@ -17,6 +17,7 @@ from ootle._types.stealth import (
 )
 from ootle._types.transaction import UnsignedTransaction
 from ootle.errors import InvalidArgumentError
+from tests._helpers.stealth import REVEALED_RECEIVER
 
 from ._builder_helpers import COMPONENT, RESOURCE, make_client, recipient_address
 
@@ -118,7 +119,7 @@ def _fake_spec() -> Any:
     from ootle._async.stealth._builder_helpers import StealthTransferState  # noqa: PLC0415
     from ootle._async.stealth._spec import StealthTransferSpec  # noqa: PLC0415
 
-    statement = StealthTransferStatement.revealed_only(1, 1)
+    statement = StealthTransferStatement.revealed_only(1, 1, REVEALED_RECEIVER)
     state = StealthTransferState(
         resource=RESOURCE, revealed_input_amount=1, revealed_output_amount=1
     )

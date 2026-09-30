@@ -56,7 +56,7 @@ def test_required_specific_substate_present_added(httpx_mock: HTTPXMock) -> None
     out = resolver.resolve(_empty_unsigned(), {want})
     transport.close()
     body = json.loads(out.json)
-    assert body["inputs"] == [{"substate_id": "component_z", "version": None}]
+    assert body["inputs"] == [{"substate_id": "component_z", "version": None, "is_write": True}]
 
 
 def test_required_specific_substate_missing_raises(httpx_mock: HTTPXMock) -> None:
@@ -81,7 +81,7 @@ def test_optional_specific_substate_present_added(httpx_mock: HTTPXMock) -> None
     out = resolver.resolve(_empty_unsigned(), {want})
     transport.close()
     body = json.loads(out.json)
-    assert body["inputs"] == [{"substate_id": "component_z", "version": None}]
+    assert body["inputs"] == [{"substate_id": "component_z", "version": None, "is_write": True}]
 
 
 def test_optional_specific_substate_missing_skipped(httpx_mock: HTTPXMock) -> None:

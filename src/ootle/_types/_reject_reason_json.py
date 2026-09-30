@@ -7,13 +7,15 @@ produces:
 - Bare string for unit variants
   (``"ForeignPledgeInputConflict"``, ``"FeePaymentInMainIntent"``)
 - Single-key object for newtype / struct variants
-  (``{"ExecutionFailure": "msg"}``, ``{"Abort": {"reason": "..."}}``)
+  (``{"ExecutionFailure": {"code": ..., "message": ...}}``,
+  ``{"Abort": {"reason": "..."}}``)
 """
 
 from __future__ import annotations
 
 from typing import Any, cast, get_args
 
+from ootle._types._execution_failure_code import ExecutionFailureCode
 from ootle._types._json_helpers import as_dict, as_str, require_int
 from ootle._types.reject_reason import (
     Abort,
@@ -31,19 +33,13 @@ from ootle._types.reject_reason import (
 )
 
 _ABORT_REASON_VARIANTS: frozenset[str] = frozenset(get_args(AbortReason))
+_EXECUTION_FAILURE_CODES: frozenset[str] = frozenset(get_args(ExecutionFailureCode))
 
 # Newtype variants whose payload is a single string message.
 _STRING_NEWTYPE_VARIANTS: dict[
     str,
-    type[
-        ExecutionFailure
-        | SubstateNotFound
-        | FailedToLockInputs
-        | FailedToLockOutputs
-        | InsufficientFeesPaid
-    ],
+    type[SubstateNotFound | FailedToLockInputs | FailedToLockOutputs | InsufficientFeesPaid],
 ] = {
-    "ExecutionFailure": ExecutionFailure,
     "SubstateNotFound": SubstateNotFound,
     "FailedToLockInputs": FailedToLockInputs,
     "FailedToLockOutputs": FailedToLockOutputs,
@@ -95,6 +91,8 @@ def _parse_object_variant(variant: str, payload: Any, items: dict[str, Any]) -> 
     string_ctor = _STRING_NEWTYPE_VARIANTS.get(variant)
     if string_ctor is not None:
         return string_ctor(message=as_str(payload))
+    if variant == "ExecutionFailure":
+        return _parse_execution_failure(payload)
     if variant == "Abort":
         return Abort(reason=_as_abort_reason(as_dict(payload).get("reason")))
     if variant == "ForeignShardGroupDecidedToAbort":
@@ -105,6 +103,19 @@ def _parse_object_variant(variant: str, payload: Any, items: dict[str, Any]) -> 
             abort_reason=_as_abort_reason(body.get("abort_reason")),
         )
     return UnknownRejectReason(discriminator=variant, raw=items)
+
+
+def _parse_execution_failure(payload: Any) -> ExecutionFailure:
+    """Parse ``{code, message}``; a bare string is the pre-0.42 unclassified form."""
+    if isinstance(payload, str):
+        return ExecutionFailure(message=payload)
+    body = as_dict(payload)
+    code = body.get("code")
+    if not (isinstance(code, str) and code in _EXECUTION_FAILURE_CODES):
+        code = "Unclassified"
+    return ExecutionFailure(
+        message=as_str(body.get("message")), code=cast("ExecutionFailureCode", code)
+    )
 
 
 def _as_abort_reason(value: Any) -> AbortReason:

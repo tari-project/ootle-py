@@ -22,6 +22,7 @@ from ootle._crypto import ensure_stealth_capable
 from ootle._crypto._stealth_provider import StealthOutputsStatementResult
 from ootle._types.instructions import WorkspaceOffsetId
 from ootle._types.stealth import (
+    RevealedOutput,
     SignatureRequirements,
     StealthInputsStatement,
     StealthTransferStatement,
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
     from ootle._async.stealth._builder_helpers import StealthTransferState
     from ootle._crypto._stealth_provider import StealthCryptoProvider
     from ootle._transaction_builder import TransactionBuilder
-    from ootle._types.address import ComponentAddress
+    from ootle._types.address import Address, ComponentAddress
 
 
 async def prepare_stealth_transfer(
@@ -89,10 +90,9 @@ async def _call_outputs_statement(
         "StealthCryptoProvider",
         ensure_stealth_capable(client._crypto),  # pyright: ignore[reportPrivateUsage]  # internal access
     )
+    revealed_output = _revealed_output(client, state)
     result = await offload(
-        lambda: stealth.generate_outputs_statement(
-            tuple(state.outputs), state.revealed_output_amount
-        )
+        lambda: stealth.generate_outputs_statement(tuple(state.outputs), revealed_output)
     )
     if not isinstance(result, StealthOutputsStatementResult):  # pyright: ignore[reportUnnecessaryIsInstance]  # runtime guard against non-conforming providers
         msg = (
@@ -119,10 +119,32 @@ def _derive_signature_requirements(state: StealthTransferState) -> SignatureRequ
     return SignatureRequirements.new_opt_with_seal_signer((), None)
 
 
+def _revealed_output(
+    client: AsyncOotleClient, state: StealthTransferState
+) -> RevealedOutput | None:
+    """Resolve the revealed output and the key authorised to take it.
+
+    Mirrors Rust ``StealthTransfer::revealed_output``: an unnamed receiver is
+    the key that seals. The client always seals stealth transfers with the
+    default account key (see ``create_stealth_authorizations``), so that key's
+    badge is in the auth scope by construction.
+    """
+    if state.revealed_output_amount == 0:
+        return None
+    receiver = state.revealed_receiver
+    if receiver is None:
+        receiver = _signer_address(client).owner_pk
+    return RevealedOutput(state.revealed_output_amount, receiver)
+
+
 def _signer_account(client: AsyncOotleClient) -> ComponentAddress:
     """Resolve the wallet's default account — the revealed-output deposit target."""
+    return _signer_address(client).to_component_address()
+
+
+def _signer_address(client: AsyncOotleClient) -> Address:
     wallet = client.wallet
     if wallet is None:
-        msg = "client has no wallet — cannot deposit the stealth revealed output"
+        msg = "client has no wallet — cannot resolve the stealth revealed output's signer"
         raise InvalidArgumentError(msg)
-    return wallet.default_address.to_component_address()
+    return wallet.default_address

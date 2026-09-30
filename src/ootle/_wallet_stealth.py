@@ -28,6 +28,7 @@ from ootle._crypto import ensure_stealth_capable
 from ootle._stealth_balance_proof import sign_balance_proof
 from ootle._types.stealth import (
     Mask,
+    RevealedOutput,
     StealthInputsStatement,
     StealthTransferStatement,
 )
@@ -81,12 +82,14 @@ def generate_outputs_statement(
     crypto: object,
     specs: Sequence[Output],
     revealed: int,
+    receiver: bytes,
 ) -> StealthTransferStatement:
     """Produce a complete :class:`StealthTransferStatement` for the faucet path.
 
     ``revealed`` is the revealed *output* amount (Rust's
     ``revealed_output_amount``) — typically the fee paid back through the
-    revealed-output bucket. The revealed *input* is derived as the sum of the
+    revealed-output bucket, taken by ``receiver`` (a key that signs the carrying
+    transaction). The revealed *input* is derived as the sum of the
     stealth output amounts plus that revealed output, so the transfer balances
     by construction. When there are stealth outputs the ``inputs == outputs``
     balance proof is signed inline (faucet claims carry no stealth inputs, so
@@ -96,7 +99,8 @@ def generate_outputs_statement(
     if revealed <= 0 and not specs:
         msg = "generate_outputs_statement: need at least one output or a positive revealed amount"
         raise ValueError(msg)
-    result = stealth.generate_outputs_statement(specs, revealed)
+    revealed_output = RevealedOutput(revealed, receiver) if revealed > 0 else None
+    result = stealth.generate_outputs_statement(specs, revealed_output)
     revealed_input = sum(o.amount for o in specs) + revealed
     inputs_statement = StealthInputsStatement.new_revealed_only(revealed_input)
     balance_proof = None

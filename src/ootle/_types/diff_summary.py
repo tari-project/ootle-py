@@ -2,7 +2,8 @@
 
 Mirrors the Rust ``DiffSummary`` / ``UpSubstate`` structs in
 ``engine_types::transaction_receipt``. ``upped`` lists every substate
-the transaction created or updated, in commit order.
+the transaction created or updated, in commit order; ``downed`` the
+substates it consumed without replacing.
 """
 
 from __future__ import annotations
@@ -32,12 +33,28 @@ class UpSubstate:
 
 
 @dataclass(frozen=True, slots=True)
+class DownSubstate:
+    """A substate a transaction downed without upping a later version.
+
+    Attributes:
+        substate_id: The substate identifier (e.g. a spent ``utxo_…``).
+        version: The version that was downed.
+    """
+
+    substate_id: SubstateId
+    version: int
+
+
+@dataclass(frozen=True, slots=True)
 class DiffSummary:
     """The substate-diff payload of a ``TransactionReceipt``.
 
     ``upped`` is the canonical answer to "what substates did this
     transaction produce". For a freshly-deployed component, the new
-    ``component_…`` address shows up here.
+    ``component_…`` address shows up here. ``downed`` lists substates the
+    transaction consumed outright (spent UTXOs, confidential outputs); downs
+    implied by an ``upped`` entry are left out.
     """
 
     upped: tuple[UpSubstate, ...] = ()
+    downed: tuple[DownSubstate, ...] = ()

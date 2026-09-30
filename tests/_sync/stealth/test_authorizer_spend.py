@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from tests._helpers.stealth import REVEALED_RECEIVER
 from ootle import LocalSigner, OotleSecretKey, OotleWallet
 from ootle._crypto._wasm_provider import WasmCryptoProvider
 from ootle._sync.stealth._authorizer_sign import create_stealth_authorizations
@@ -48,7 +49,7 @@ def _spec(
     """A minimal spec carrying ``reqs`` — enough to drive the signing loop."""
     return StealthTransferSpec(
         unsigned=UnsignedTransaction(json=unsigned_json),
-        statement=StealthTransferStatement.revealed_only(1, 1),
+        statement=StealthTransferStatement.revealed_only(1, 1, REVEALED_RECEIVER),
         signature_requirements=reqs,
         output_mask=None,
         state=StealthTransferState(resource=RESOURCE),
