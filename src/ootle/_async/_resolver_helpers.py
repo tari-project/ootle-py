@@ -187,7 +187,9 @@ def fold_inputs(
     body = cast("dict[str, Any]", payload)
     try:
         declared = [
-            SubstateRequirement(SubstateId(e["substate_id"]), e["version"], e.get("is_write", True))
+            SubstateRequirement(
+                SubstateId(e["substate_id"]), e.get("version"), e.get("is_write", True)
+            )
             for e in cast("list[dict[str, Any]]", body.get("inputs") or [])
         ]
     except (KeyError, TypeError) as exc:

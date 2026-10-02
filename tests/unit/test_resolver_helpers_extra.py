@@ -147,6 +147,17 @@ def test_fold_inputs_merges_declarations_of_one_substate() -> None:
     ]
 
 
+def test_fold_inputs_reads_a_missing_version_as_unversioned() -> None:
+    """Upstream ``InputDeclaration.version`` is a serde ``Option``: an absent key is ``None``."""
+    unsigned = UnsignedTransaction(json='{"inputs": [{"substate_id": "x"}]}')
+    out = fold_inputs(unsigned, [SubstateRequirement(id=SubstateId("y"))])
+    assert json.loads(out.json)["inputs"][0] == {
+        "substate_id": "x",
+        "version": None,
+        "is_write": True,
+    }
+
+
 def test_fold_inputs_rejects_malformed_existing_input() -> None:
     unsigned = UnsignedTransaction(json='{"inputs": [{"version": null}]}')
     with pytest.raises(IndexerClientError, match="malformed input declaration"):
