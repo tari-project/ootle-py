@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, cast
 
 if TYPE_CHECKING:
     from ootle._types.instructions import Instruction
@@ -29,6 +29,27 @@ explicit bound resolves one from the live network epoch at ``prepare()`` time.
 def substate_requirement_to_json(req: SubstateRequirement) -> dict[str, Any]:
     """Render a :class:`SubstateRequirement` into its ``InputDeclaration`` wire form."""
     return {"substate_id": req.id.opaque, "version": req.version, "is_write": req.is_write}
+
+
+def parse_input_declarations(entries: object) -> list[SubstateRequirement]:
+    """Parse a JSON ``inputs`` list; absent ``version`` / ``is_write`` take serde's defaults.
+
+    Raises:
+        IndexerClientError: An entry is not an object or has no ``substate_id``.
+    """
+    from ootle._types.substate import SubstateId, SubstateRequirement  # noqa: PLC0415
+    from ootle.errors import IndexerClientError  # noqa: PLC0415
+
+    try:
+        return [
+            SubstateRequirement(
+                SubstateId(e["substate_id"]), e.get("version"), e.get("is_write", True)
+            )
+            for e in cast("list[dict[str, Any]]", entries)
+        ]
+    except (KeyError, TypeError, AttributeError) as exc:
+        msg = f"malformed input declaration in unsigned transaction: {exc!r}"
+        raise IndexerClientError(msg, status=None, body="", url="") from exc
 
 
 def declare_input(inputs: list[SubstateRequirement], req: SubstateRequirement) -> None:

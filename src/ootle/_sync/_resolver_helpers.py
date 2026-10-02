@@ -10,7 +10,11 @@ from typing import Any, cast
 
 from ootle._types._bor_value import BinaryTag, iter_object_keys_hex
 from ootle._types._tari_constants import TARI_TOKEN
-from ootle._types._tx_body import declare_input, substate_requirement_to_json
+from ootle._types._tx_body import (
+    declare_input,
+    parse_input_declarations,
+    substate_requirement_to_json,
+)
 from ootle._types.substate import (
     ComponentSubstateValue,
     Substate,
@@ -185,16 +189,7 @@ def fold_inputs(
         msg = "unsigned transaction JSON must be an object"
         raise IndexerClientError(msg, status=None, body="", url="")
     body = cast("dict[str, Any]", payload)
-    try:
-        declared = [
-            SubstateRequirement(
-                SubstateId(e["substate_id"]), e.get("version"), e.get("is_write", True)
-            )
-            for e in cast("list[dict[str, Any]]", body.get("inputs") or [])
-        ]
-    except (KeyError, TypeError) as exc:
-        msg = f"malformed input declaration in unsigned transaction: {exc!r}"
-        raise IndexerClientError(msg, status=None, body="", url="") from exc
+    declared = parse_input_declarations(body.get("inputs") or [])
     for req in new_inputs:
         declare_input(declared, req)
     body["inputs"] = [substate_requirement_to_json(r) for r in declared]
