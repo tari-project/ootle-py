@@ -31,10 +31,24 @@ class SubstateId:
 
 @dataclass(frozen=True, slots=True)
 class SubstateRequirement:
-    """A reference to a substate, optionally pinned to a version."""
+    """A substate declared as a transaction input, optionally pinned to a version.
+
+    Mirrors upstream ``InputDeclaration``. ``is_write`` is the access the
+    transaction intends: a read admits concurrent readers, and the engine aborts
+    a transaction that writes to a read-declared input. Defaults to a write.
+    """
 
     id: SubstateId
     version: int | None = None
+    is_write: bool = True
+
+    def merge(self, other: SubstateRequirement) -> SubstateRequirement:
+        """Cover both declarations of one substate: a write if either is, ``self``'s version first.
+
+        Mirrors upstream ``InputDeclaration::merge``.
+        """
+        version = self.version if self.version is not None else other.version
+        return SubstateRequirement(self.id, version, self.is_write or other.is_write)
 
 
 @dataclass(frozen=True, slots=True)

@@ -8,7 +8,7 @@ from pytest_httpx import HTTPXMock
 from ootle import AsyncOotleClient
 from ootle._async.stealth.transfer import AsyncStealthTransfer
 from ootle._crypto._stealth_provider import StealthOutputsStatementResult
-from ootle._types.stealth import Mask, StealthOutputsStatement
+from ootle._types.stealth import Mask, RevealedOutput, StealthOutputsStatement
 from ootle.errors import InvalidArgumentError
 from tests._async._helpers import mock_network
 from tests._async.stealth._builder_helpers import (
@@ -17,6 +17,7 @@ from tests._async.stealth._builder_helpers import (
     make_client,
     make_wallet,
 )
+from tests._helpers.stealth import REVEALED_RECEIVER
 
 
 async def test_prepare_requires_inputs(httpx_mock: HTTPXMock) -> None:
@@ -54,7 +55,9 @@ async def test_prepare_rejects_unexpected_provider_result_shape(
     mock_network(httpx_mock)
 
     class _BadCrypto:
-        def generate_outputs_statement(self, _specs: object, _revealed: int) -> object:
+        def generate_outputs_statement(
+            self, _specs: object, _revealed: RevealedOutput | None
+        ) -> object:
             return "not a result"
 
     client = await AsyncOotleClient.connect(
@@ -75,7 +78,7 @@ async def test_prepare_rejects_unexpected_provider_result_shape(
 def test_result_helper_constructs_stealth_outputs_result() -> None:
     """Smoke check on :class:`StealthOutputsStatementResult` typing."""
     res = StealthOutputsStatementResult(
-        statement=StealthOutputsStatement.new_revealed_only(1),
+        statement=StealthOutputsStatement.new_revealed_only(1, REVEALED_RECEIVER),
         output_mask=Mask(raw=b"\x00" * 32),
     )
     assert res.statement.revealed_output_amount == 1

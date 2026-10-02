@@ -1,19 +1,20 @@
 """``RejectReason`` — typed model of the engine's rejection reasons.
 
 Mirrors the Rust ``RejectReason`` / ``AbortReason`` enums in
-``engine_types::commit_result``. Each variant is a frozen-slots
-dataclass with a snake_case ``kind`` literal; the union alias
-``RejectReason`` is the discriminated type.
+``engine_types::commit_result``. Each variant is a frozen-slots dataclass
+with a snake_case ``kind``; ``RejectReason`` is the discriminated union.
 
-``UnknownRejectReason`` round-trips any variant the v1 client does not
-yet decode, so callers can still see *something* when the upstream adds
-a new variant ahead of a Python release.
+``UnknownRejectReason`` round-trips any variant not yet decoded, so
+callers still see *something* when upstream adds a new variant.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from ootle._types._execution_failure_code import ExecutionFailureCode
 
 AbortReason = Literal[
     "ForeignPledgeInputConflict",
@@ -38,10 +39,12 @@ class ExecutionFailure:
     """Template / engine threw during execution.
 
     ``message`` is the engine's failure string (e.g. ``"Access Denied: ..."``,
-    ``"stack overflow"``, ``"panicked at ..."``).
+    ``"stack overflow"``, ``"panicked at ..."``); ``code`` classifies it,
+    keeping a newer upstream code verbatim.
     """
 
     message: str
+    code: ExecutionFailureCode | str = "Unclassified"
     kind: Literal["execution_failure"] = "execution_failure"
 
 
@@ -165,7 +168,7 @@ def format_reject_reason(reason: RejectReason) -> str:
             | FailedToLockOutputs()
             | InsufficientFeesPaid()
         ):
-            return f"{_MESSAGE_VARIANT_PREFIXES[type(reason)]}: {reason.message}"
+            return f"{_message_prefix(reason)}: {reason.message}"
         case ForeignShardGroupDecidedToAbort():
             return (
                 f"Foreign shard group [{reason.start_shard}, {reason.end_shard}] "
@@ -181,6 +184,11 @@ def format_reject_reason(reason: RejectReason) -> str:
             return f"Unknown: {reason.discriminator}"
         case _:
             raise AssertionError(f"unhandled variant: {reason!r}")
+
+
+def _message_prefix(reason: _MessageVariant) -> str:
+    prefix = _MESSAGE_VARIANT_PREFIXES[type(reason)]
+    return f"{prefix} ({reason.code})" if isinstance(reason, ExecutionFailure) else prefix
 
 
 _MESSAGE_VARIANT_PREFIXES: dict[type[_MessageVariant], str] = {

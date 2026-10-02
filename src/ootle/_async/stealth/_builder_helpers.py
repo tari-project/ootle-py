@@ -74,6 +74,14 @@ def ensure_positive(amount: int, *, label: str) -> int:
     return amount
 
 
+def add_revealed_output(state: StealthTransferState, amount: int) -> None:
+    """Accumulate a revealed output; revealing zero is a no-op (Rust ``to_revealed_output``)."""
+    if amount < 0:
+        msg = f"to_revealed_output amount must not be negative, got {amount}"
+        raise InvalidArgumentError(msg)
+    state.revealed_output_amount += amount
+
+
 def add_stealth_input_want(
     want_list: set[WantInputItem],
     commitment: bytes,

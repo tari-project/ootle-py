@@ -26,6 +26,9 @@ if TYPE_CHECKING:
 
 
 _BALANCE_PROOF_LEN = 64
+# The client never builds covenant claims (they come from spending covenant-locked
+# UTXOs), so every balance proof it signs commits to an empty claim list.
+_NO_COVENANT_CLAIMS = "[]"
 
 
 def compact_statement_json(payload: dict[str, Any]) -> str:
@@ -65,5 +68,6 @@ def sign_balance_proof(
         output_mask=output_mask,
         inputs_statement_json=compact_statement_json(inputs_statement.to_json()),
         outputs_statement_json=compact_statement_json(outputs_statement.to_json()),
+        covenant_claims_json=_NO_COVENANT_CLAIMS,
     )
     return split_balance_proof_bytes(raw)

@@ -5,6 +5,48 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [0.3.0] — 2026-10-02
+
+### Changed
+
+- **Vendored `ootle-wasm` bumped to 0.43.0**, tracking the upstream
+  [`tari-ootle` v0.43.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.43.0)
+  release. The wire changes below arrived in v0.42.0 (a testnet reset); v0.43.0
+  leaves the WASM exports and the endpoints this client uses unchanged.
+- **Revealed stealth outputs name their receiver.** Upstream replaced
+  `StealthOutputsStatement.revealed_output_amount` with
+  `revealed_output: RevealedOutput | None` — the amount plus the public key
+  whose badge must be in the transaction's auth scope for the engine to create
+  the revealed bucket. `revealed_output_amount` survives as a read-only
+  property. `StealthOutputsStatement.new_revealed_only` and
+  `StealthTransferStatement.revealed_only` now take a `receiver`, and
+  `StealthCryptoProvider.generate_outputs_statement` takes a
+  `RevealedOutput | None` instead of an amount. `StealthTransfer` and
+  `OotleWallet.generate_outputs_statement` (the faucet stealth path) name the
+  default account key, which seals the transaction (the wallet helper takes a
+  `receiver=` override). `to_revealed_output(0)` is now a no-op instead of an
+  error; negative amounts are still rejected, as upstream `Amount` is unsigned.
+- **Balance proofs commit to covenant claims.**
+  `StealthCryptoProvider.generate_balance_proof_signature` gains a
+  `covenant_claims_json` argument; the client builds none, so it signs `"[]"`.
+- **Inputs declare read or write intent.** `SubstateRequirement` gains
+  `is_write` (default `True`) and serialises as upstream's `InputDeclaration`.
+  The resolver declares the resource behind a `VaultForResource` want as a
+  read. Upstream now rejects a transaction that declares one substate twice,
+  so declarations of the same substate merge (a write if either is; the first
+  pinned version wins) instead of appending.
+- **`ExecutionFailure` carries a `code`** (`ExecutionFailureCode`), parsed from
+  upstream's `{code, message}` payload; `format_reject_reason` renders it as
+  `Execution failure (<code>): <message>`. A code newer than this client is
+  kept verbatim; the pre-0.42 bare-string form parses as `Unclassified`.
+
+### Added
+
+- **`DiffSummary.downed`** (`DownSubstate`) — substates a transaction consumed
+  without replacing (spent UTXOs, confidential outputs).
+- `RevealedOutput`, `DownSubstate`, and `ExecutionFailureCode` are exported
+  from `ootle`.
+
 ## [0.2.0] — 2026-09-17
 
 ### Changed

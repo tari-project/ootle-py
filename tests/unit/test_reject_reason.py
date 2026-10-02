@@ -39,6 +39,17 @@ def test_parse_execution_failure_extracts_message() -> None:
     assert parsed == ExecutionFailure(message="stack overflow")
 
 
+def test_parse_execution_failure_extracts_code_and_message() -> None:
+    raw = {"ExecutionFailure": {"code": "InsufficientFunds", "message": "vault empty"}}
+    parsed = parse_reject_reason(raw)
+    assert parsed == ExecutionFailure(message="vault empty", code="InsufficientFunds")
+
+
+def test_parse_execution_failure_keeps_unknown_code_verbatim() -> None:
+    parsed = parse_reject_reason({"ExecutionFailure": {"code": "Novel", "message": "m"}})
+    assert parsed == ExecutionFailure(message="m", code="Novel")
+
+
 def test_parse_substate_not_found_extracts_message() -> None:
     assert parse_reject_reason({"SubstateNotFound": "missing"}) == SubstateNotFound(
         message="missing"
@@ -116,7 +127,13 @@ def test_parse_epoch_expired_abort_reason() -> None:
 
 
 def test_format_reject_reason_matches_rust_display() -> None:
-    assert format_reject_reason(ExecutionFailure("boom")) == "Execution failure: boom"
+    assert (
+        format_reject_reason(ExecutionFailure("boom")) == "Execution failure (Unclassified): boom"
+    )
+    assert (
+        format_reject_reason(ExecutionFailure("no", code="AccessDenied"))
+        == "Execution failure (AccessDenied): no"
+    )
     assert (
         format_reject_reason(InsufficientFeesPaid("fees of 100 less than minimum 500"))
         == "Insufficient fees paid: fees of 100 less than minimum 500"

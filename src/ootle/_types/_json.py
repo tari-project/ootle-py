@@ -20,7 +20,7 @@ from ootle._types._json_helpers import (
 )
 from ootle._types.address import TemplateAddress
 from ootle._types.amount import Amount
-from ootle._types.diff_summary import DiffSummary, UpSubstate
+from ootle._types.diff_summary import DiffSummary, DownSubstate, UpSubstate
 from ootle._types.events import TransactionEvent
 from ootle._types.receipt import FeeReceipt, TransactionReceipt
 from ootle._types.substate import SubstateId
@@ -129,9 +129,16 @@ def parse_receipt(payload: dict[str, Any]) -> TransactionReceipt:
 
 
 def parse_diff_summary(payload: dict[str, Any]) -> DiffSummary:
-    """Parse a ``DiffSummary`` envelope. Missing ``upped`` → empty."""
+    """Parse a ``DiffSummary`` envelope. Missing ``upped`` / ``downed`` → empty."""
     upped_raw = optional_list(payload, "upped") or []
-    return DiffSummary(upped=tuple(_parse_up_substate(as_dict(u)) for u in upped_raw))
+    downed_raw = optional_list(payload, "downed") or []
+    return DiffSummary(
+        upped=tuple(_parse_up_substate(as_dict(u)) for u in upped_raw),
+        downed=tuple(
+            DownSubstate(SubstateId(require_str(d, "substate_id")), require_int(d, "version"))
+            for d in map(as_dict, downed_raw)
+        ),
+    )
 
 
 def _parse_up_substate(payload: dict[str, Any]) -> UpSubstate:

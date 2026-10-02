@@ -28,6 +28,7 @@ from ootle._crypto import ensure_stealth_capable
 from ootle._stealth_balance_proof import sign_balance_proof
 from ootle._types.stealth import (
     Mask,
+    RevealedOutput,
     StealthInputsStatement,
     StealthTransferStatement,
 )
@@ -81,22 +82,33 @@ def generate_outputs_statement(
     crypto: object,
     specs: Sequence[Output],
     revealed: int,
+    receiver: bytes | None,
 ) -> StealthTransferStatement:
     """Produce a complete :class:`StealthTransferStatement` for the faucet path.
 
     ``revealed`` is the revealed *output* amount (Rust's
     ``revealed_output_amount``) — typically the fee paid back through the
-    revealed-output bucket. The revealed *input* is derived as the sum of the
+    revealed-output bucket, taken by ``receiver`` (a key that signs the carrying
+    transaction). The revealed *input* is derived as the sum of the
     stealth output amounts plus that revealed output, so the transfer balances
     by construction. When there are stealth outputs the ``inputs == outputs``
     balance proof is signed inline (faucet claims carry no stealth inputs, so
     the input mask is the zero scalar) and the envelope is validated.
     """
     stealth = _require(crypto)
-    if revealed <= 0 and not specs:
+    if revealed < 0:
+        msg = f"generate_outputs_statement: revealed must not be negative, got {revealed}"
+        raise ValueError(msg)
+    if revealed == 0 and not specs:
         msg = "generate_outputs_statement: need at least one output or a positive revealed amount"
         raise ValueError(msg)
-    result = stealth.generate_outputs_statement(specs, revealed)
+    revealed_output = None
+    if revealed > 0:
+        if receiver is None:
+            msg = "generate_outputs_statement: a revealed output needs a receiver"
+            raise ValueError(msg)
+        revealed_output = RevealedOutput(revealed, receiver)
+    result = stealth.generate_outputs_statement(specs, revealed_output)
     revealed_input = sum(o.amount for o in specs) + revealed
     inputs_statement = StealthInputsStatement.new_revealed_only(revealed_input)
     balance_proof = None

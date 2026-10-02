@@ -7,7 +7,8 @@ Mirrors the upstream wire shapes in
   a UTXO to spend.
 - :class:`StealthInputsStatement` — the set of stealth inputs plus the
   revealed-input amount.
-- :class:`StealthOutputsStatement` — the output side of a transfer.
+- :class:`StealthOutputsStatement` — the output side of a transfer; its
+  revealed half is a :class:`RevealedOutput` (amount + receiver key).
 - :class:`StealthTransferStatement` — full transfer envelope (inputs +
   outputs + optional balance proof).
 
@@ -33,6 +34,7 @@ from ootle._types.stealth._json import (
     require_list,
 )
 from ootle._types.stealth._proofs import BalanceProofSignature
+from ootle._types.stealth._revealed import RevealedOutput
 from ootle._types.stealth._unspent import StealthUnspentOutput
 
 _PEDERSEN_COMMITMENT_LEN: Final[int] = 32
@@ -105,18 +107,26 @@ class StealthInputsStatement:
 class StealthOutputsStatement:
     """Output half of a stealth transfer.
 
-    ``agg_range_proof`` is the bulletproof carrier — empty in
-    revealed-only transfers.
+    ``revealed_output`` is ``None`` when nothing is revealed — upstream
+    rejects a zero amount, so ``None`` is the only "no revealed output"
+    encoding. ``agg_range_proof`` is empty in revealed-only transfers.
     """
 
     outputs: tuple[StealthUnspentOutput, ...]
-    revealed_output_amount: int
+    revealed_output: RevealedOutput | None
     agg_range_proof: bytes
 
+    @property
+    def revealed_output_amount(self) -> int:
+        """The revealed amount, or ``0`` when there is no revealed output."""
+        return 0 if self.revealed_output is None else self.revealed_output.amount
+
     @classmethod
-    def new_revealed_only(cls, amount: int) -> Self:
+    def new_revealed_only(cls, amount: int, receiver: bytes) -> Self:
         """Match Rust ``StealthOutputsStatement::new_revealed_only``."""
-        return cls(outputs=(), revealed_output_amount=amount, agg_range_proof=b"")
+        return cls(
+            outputs=(), revealed_output=RevealedOutput(amount, receiver), agg_range_proof=b""
+        )
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> Self:
@@ -129,16 +139,22 @@ class StealthOutputsStatement:
         else:
             msg = "agg_range_proof must be a hex string when present"
             raise TypeError(msg)
+        if "revealed_output" not in data:
+            msg = "StealthOutputsStatement is missing 'revealed_output' (pre-0.42 shape?)"
+            raise KeyError(msg)
+        revealed = optional_dict(data, "revealed_output")
         return cls(
             outputs=outputs,
-            revealed_output_amount=require_amount(data, "revealed_output_amount"),
+            revealed_output=None if revealed is None else RevealedOutput.from_json(revealed),
             agg_range_proof=proof,
         )
 
     def to_json(self) -> dict[str, Any]:
         return {
             "outputs": [o.to_json() for o in self.outputs],
-            "revealed_output_amount": self.revealed_output_amount,
+            "revealed_output": None
+            if self.revealed_output is None
+            else self.revealed_output.to_json(),
             "agg_range_proof": bytes_to_hex(self.agg_range_proof),
         }
 
@@ -155,11 +171,11 @@ class StealthTransferStatement:
     balance_proof: BalanceProofSignature | None = None
 
     @classmethod
-    def revealed_only(cls, input_amount: int, output_amount: int) -> Self:
+    def revealed_only(cls, input_amount: int, output_amount: int, receiver: bytes) -> Self:
         """Match Rust ``StealthTransferStatement::revealed_only``."""
         return cls(
             inputs_statement=StealthInputsStatement.new_revealed_only(input_amount),
-            outputs_statement=StealthOutputsStatement.new_revealed_only(output_amount),
+            outputs_statement=StealthOutputsStatement.new_revealed_only(output_amount, receiver),
             balance_proof=None,
         )
 

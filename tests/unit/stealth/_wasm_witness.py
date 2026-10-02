@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ootle._crypto._stealth_provider import StealthOutputsStatementResult
     from ootle._crypto._wasm_provider import WasmCryptoProvider
+    from ootle._types.stealth import RevealedOutput
 
 ZERO_ENCRYPTED: str = "00" * 80
 
@@ -46,9 +47,9 @@ def output_witness(
 def outputs_statement(
     provider: WasmCryptoProvider,
     witnesses: list[dict[str, Any]],
-    revealed_output_amount: int = 0,
+    revealed_output: RevealedOutput | None = None,
 ) -> StealthOutputsStatementResult:
     """Run ``generateStealthOutputsStatement`` over ready-made witnesses."""
     return provider._outputs_statement_from_witnesses(  # pyright: ignore[reportPrivateUsage]  # internal access
-        json.dumps(witnesses), revealed_output_amount
+        json.dumps(witnesses), revealed_output
     )

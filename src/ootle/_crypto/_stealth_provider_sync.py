@@ -17,6 +17,7 @@ if TYPE_CHECKING:
         DecryptedData,
         Mask,
         Output,
+        RevealedOutput,
         StealthTransferStatement,
     )
 
@@ -32,7 +33,7 @@ class SyncStealthCryptoProvider(Protocol):
     def generate_outputs_statement(
         self,
         specs: Sequence[Output],
-        revealed_output_amount: int,
+        revealed_output: RevealedOutput | None,
     ) -> StealthOutputsStatementResult:
         """Sync counterpart of :meth:`StealthCryptoProvider.generate_outputs_statement`."""
         ...
@@ -43,6 +44,7 @@ class SyncStealthCryptoProvider(Protocol):
         output_mask: Mask,
         inputs_statement_json: str,
         outputs_statement_json: str,
+        covenant_claims_json: str,
     ) -> bytes:
         """Sync counterpart of :meth:`StealthCryptoProvider.generate_balance_proof_signature`."""
         ...

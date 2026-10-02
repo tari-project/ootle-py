@@ -8,7 +8,6 @@ bytes across runs.
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from ootle._stealth_balance_proof import compact_statement_json
@@ -20,7 +19,6 @@ from ootle._types.stealth import (
     OneTimePublicKey,
     StealthInput,
     StealthInputsStatement,
-    StealthOutputBody,
     StealthOutputsStatement,
     StealthTransferStatement,
     StealthUnspentOutput,
@@ -168,60 +166,12 @@ def test_stealth_inputs_statement_revealed_only() -> None:
     assert StealthInputsStatement.from_json(stmt.to_json()) == stmt
 
 
-def test_stealth_outputs_statement_revealed_only_round_trip() -> None:
-    stmt = StealthOutputsStatement.new_revealed_only(250)
-    encoded = stmt.to_json()
-    assert encoded == {"outputs": [], "revealed_output_amount": 250, "agg_range_proof": ""}
-    assert StealthOutputsStatement.from_json(encoded) == stmt
-
-
-def test_stealth_transfer_statement_revealed_only_round_trip() -> None:
-    s = StealthTransferStatement.revealed_only(300, 300)
-    assert s.balance_proof is None
-    encoded = s.to_json()
-    # Byte-stable serialiser should accept either representation; compare
-    # via round-trip rather than literal-byte equality so we are not
-    # locking the entire payload byte-by-byte (covered in the dumps test).
-    assert StealthTransferStatement.from_json(encoded) == s
-    assert json.loads(dumps_stable(encoded))["balance_proof"] is None
-
-
-def test_stealth_output_body_from_json_engine_shape() -> None:
-    """The engine substate body uses ``public_nonce`` and no commitment."""
-    body = StealthOutputBody.from_json(
-        {
-            "public_nonce": "aa" * 32,
-            "encrypted_data": "00" * 80,
-            "minimum_value_promise": 0,
-            "viewable_balance": None,
-        }
-    )
-    assert body.public_nonce == b"\xaa" * 32
-    assert body.minimum_value_promise == 0
-    assert body.viewable_balance is None
-
-
-def test_stealth_output_body_parses_two_field_viewable_balance() -> None:
-    """On-chain ``viewable_balance`` is the 2-field ElGamal ciphertext."""
-    body = StealthOutputBody.from_json(
-        {
-            "public_nonce": "aa" * 32,
-            "encrypted_data": "00" * 80,
-            "minimum_value_promise": 5,
-            "viewable_balance": {"encrypted": "bb" * 32, "public_nonce": "cc" * 32},
-        }
-    )
-    assert body.viewable_balance is not None
-    assert body.viewable_balance.encrypted == b"\xbb" * 32
-    assert body.viewable_balance.public_nonce == b"\xcc" * 32
-
-
 def test_stealth_transfer_statement_with_balance_proof_round_trip() -> None:
     bp = BalanceProofSignature(public_nonce=b"\xee" * 32, signature=b"\xff" * 32)
     inputs = StealthInputsStatement(
         inputs=(StealthInput(commitment=b"\x11" * 32),), revealed_amount=0
     )
-    outputs = StealthOutputsStatement.new_revealed_only(0)
+    outputs = StealthOutputsStatement(outputs=(), revealed_output=None, agg_range_proof=b"")
     transfer = StealthTransferStatement(
         inputs_statement=inputs, outputs_statement=outputs, balance_proof=bp
     )
