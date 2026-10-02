@@ -5,7 +5,7 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
-## [Unreleased]
+## [0.3.0] — 2026-10-02
 
 ### Changed
 
