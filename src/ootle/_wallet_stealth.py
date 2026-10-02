@@ -82,7 +82,7 @@ def generate_outputs_statement(
     crypto: object,
     specs: Sequence[Output],
     revealed: int,
-    receiver: bytes,
+    receiver: bytes | None,
 ) -> StealthTransferStatement:
     """Produce a complete :class:`StealthTransferStatement` for the faucet path.
 
@@ -96,10 +96,18 @@ def generate_outputs_statement(
     the input mask is the zero scalar) and the envelope is validated.
     """
     stealth = _require(crypto)
-    if revealed <= 0 and not specs:
+    if revealed < 0:
+        msg = f"generate_outputs_statement: revealed must not be negative, got {revealed}"
+        raise ValueError(msg)
+    if revealed == 0 and not specs:
         msg = "generate_outputs_statement: need at least one output or a positive revealed amount"
         raise ValueError(msg)
-    revealed_output = RevealedOutput(revealed, receiver) if revealed > 0 else None
+    revealed_output = None
+    if revealed > 0:
+        if receiver is None:
+            msg = "generate_outputs_statement: a revealed output needs a receiver"
+            raise ValueError(msg)
+        revealed_output = RevealedOutput(revealed, receiver)
     result = stealth.generate_outputs_statement(specs, revealed_output)
     revealed_input = sum(o.amount for o in specs) + revealed
     inputs_statement = StealthInputsStatement.new_revealed_only(revealed_input)

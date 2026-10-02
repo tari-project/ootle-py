@@ -45,9 +45,9 @@ def test_parse_execution_failure_extracts_code_and_message() -> None:
     assert parsed == ExecutionFailure(message="vault empty", code="InsufficientFunds")
 
 
-def test_parse_execution_failure_unknown_code_is_unclassified() -> None:
+def test_parse_execution_failure_keeps_unknown_code_verbatim() -> None:
     parsed = parse_reject_reason({"ExecutionFailure": {"code": "Novel", "message": "m"}})
-    assert parsed == ExecutionFailure(message="m", code="Unclassified")
+    assert parsed == ExecutionFailure(message="m", code="Novel")
 
 
 def test_parse_substate_not_found_extracts_message() -> None:

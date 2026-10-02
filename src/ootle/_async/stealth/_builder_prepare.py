@@ -124,17 +124,14 @@ def _revealed_output(
 ) -> RevealedOutput | None:
     """Resolve the revealed output and the key authorised to take it.
 
-    Mirrors Rust ``StealthTransfer::revealed_output``: an unnamed receiver is
-    the key that seals. The client always seals stealth transfers with the
-    default account key (see ``create_stealth_authorizations``), so that key's
-    badge is in the auth scope by construction.
+    Mirrors Rust ``StealthTransfer::revealed_output``: the receiver is the key
+    that seals. The client always seals stealth transfers with the default
+    account key (see ``create_stealth_authorizations``), so that key's badge is
+    in the auth scope by construction.
     """
     if state.revealed_output_amount == 0:
         return None
-    receiver = state.revealed_receiver
-    if receiver is None:
-        receiver = _signer_address(client).owner_pk
-    return RevealedOutput(state.revealed_output_amount, receiver)
+    return RevealedOutput(state.revealed_output_amount, _signer_address(client).owner_pk)
 
 
 def _signer_account(client: AsyncOotleClient) -> ComponentAddress:

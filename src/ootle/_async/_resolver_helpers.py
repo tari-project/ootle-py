@@ -177,11 +177,7 @@ def extract_vault_ids(component: Substate) -> list[SubstateId]:
 def fold_inputs(
     unsigned: UnsignedTransaction, new_inputs: list[SubstateRequirement]
 ) -> UnsignedTransaction:
-    """Re-emit ``unsigned`` with ``new_inputs`` declared in its ``inputs`` list.
-
-    Declarations merge by substate id (see :func:`declare_input`): the engine
-    rejects a transaction that declares one substate twice.
-    """
+    """Re-emit ``unsigned`` with ``new_inputs`` declared (merged by id) in its ``inputs``."""
     if not new_inputs:
         return unsigned
     payload: Any = json.loads(unsigned.json)
@@ -189,10 +185,14 @@ def fold_inputs(
         msg = "unsigned transaction JSON must be an object"
         raise IndexerClientError(msg, status=None, body="", url="")
     body = cast("dict[str, Any]", payload)
-    declared = [
-        SubstateRequirement(SubstateId(e["substate_id"]), e.get("version"), e.get("is_write", True))
-        for e in cast("list[dict[str, Any]]", body.get("inputs") or [])
-    ]
+    try:
+        declared = [
+            SubstateRequirement(SubstateId(e["substate_id"]), e["version"], e.get("is_write", True))
+            for e in cast("list[dict[str, Any]]", body.get("inputs") or [])
+        ]
+    except (KeyError, TypeError) as exc:
+        msg = f"malformed input declaration in unsigned transaction: {exc!r}"
+        raise IndexerClientError(msg, status=None, body="", url="") from exc
     for req in new_inputs:
         declare_input(declared, req)
     body["inputs"] = [substate_requirement_to_json(r) for r in declared]

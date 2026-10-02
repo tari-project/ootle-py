@@ -58,3 +58,11 @@ def test_stealth_transfer_statement_revealed_only_round_trip() -> None:
     encoded = s.to_json()
     assert StealthTransferStatement.from_json(encoded) == s
     assert json.loads(dumps_stable(encoded))["balance_proof"] is None
+
+
+def test_outputs_statement_without_revealed_output_key_is_rejected() -> None:
+    """The pre-0.42 ``revealed_output_amount`` shape must not parse as "nothing revealed"."""
+    with pytest.raises(KeyError, match="revealed_output"):
+        StealthOutputsStatement.from_json(
+            {"outputs": [], "revealed_output_amount": 250, "agg_range_proof": ""}
+        )

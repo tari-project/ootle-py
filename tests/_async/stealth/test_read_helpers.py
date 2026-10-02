@@ -120,6 +120,21 @@ def test_wallet_generate_outputs_statement_routes_to_provider() -> None:
     assert revealed.receiver == wallet.default_address.owner_pk
 
 
+def test_wallet_generate_outputs_statement_rejects_negative_revealed() -> None:
+    """``Amount`` is unsigned upstream."""
+    wallet = OotleWallet(crypto=WasmCryptoProvider.load_default())
+    with pytest.raises(ValueError, match="negative"):
+        wallet.generate_outputs_statement([], revealed=-1)
+
+
+def test_wallet_generate_outputs_statement_needs_no_signer_without_reveal() -> None:
+    """With nothing revealed there is no receiver to resolve, so no default signer is needed."""
+    wallet = OotleWallet(crypto=WasmCryptoProvider.load_default())
+    out = Output(destination=recipient_address(), amount=100, resource_address=RESOURCE)
+    statement = wallet.generate_outputs_statement([out], revealed=0)
+    assert statement.outputs_statement.revealed_output is None
+
+
 def test_wallet_generate_outputs_statement_signs_balance_proof() -> None:
     """A stealth output yields a complete statement: balance proof + derived revealed input.
 

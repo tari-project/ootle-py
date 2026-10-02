@@ -140,13 +140,13 @@ class AsyncStealthTransfer:
         self._state.outputs.append(output)
         return self
 
-    def to_revealed_output(self, amount: Amount | int, *, receiver: bytes | None = None) -> Self:
+    def to_revealed_output(self, amount: Amount | int) -> Self:
         """Accumulate ``amount`` into the revealed-output bucket (zero is a no-op).
 
-        ``receiver`` is the 32-byte key authorised to take it and must sign the
-        transaction; it defaults to the sealing (default account) key.
+        :meth:`prepare` deposits the bucket into the default account, whose key
+        seals the transaction and so is the receiver the statement names.
         """
-        add_revealed_output(self._state, int(amount), receiver)
+        add_revealed_output(self._state, int(amount))
         return self
 
     def pay_fee_from_revealed(self, amount: Amount | int) -> Self:

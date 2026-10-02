@@ -1,9 +1,8 @@
 """``RejectReason`` — typed model of the engine's rejection reasons.
 
 Mirrors the Rust ``RejectReason`` / ``AbortReason`` enums in
-``engine_types::commit_result``. Each variant is a frozen-slots
-dataclass with a snake_case ``kind`` literal; the union alias
-``RejectReason`` is the discriminated type.
+``engine_types::commit_result``. Each variant is a frozen-slots dataclass
+with a snake_case ``kind``; ``RejectReason`` is the discriminated union.
 
 ``UnknownRejectReason`` round-trips any variant not yet decoded, so
 callers still see *something* when upstream adds a new variant.
@@ -40,11 +39,12 @@ class ExecutionFailure:
     """Template / engine threw during execution.
 
     ``message`` is the engine's failure string (e.g. ``"Access Denied: ..."``,
-    ``"stack overflow"``, ``"panicked at ..."``); ``code`` classifies it.
+    ``"stack overflow"``, ``"panicked at ..."``); ``code`` classifies it,
+    keeping a newer upstream code verbatim.
     """
 
     message: str
-    code: ExecutionFailureCode = "Unclassified"
+    code: ExecutionFailureCode | str = "Unclassified"
     kind: Literal["execution_failure"] = "execution_failure"
 
 

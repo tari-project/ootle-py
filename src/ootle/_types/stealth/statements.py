@@ -139,6 +139,9 @@ class StealthOutputsStatement:
         else:
             msg = "agg_range_proof must be a hex string when present"
             raise TypeError(msg)
+        if "revealed_output" not in data:
+            msg = "StealthOutputsStatement is missing 'revealed_output' (pre-0.42 shape?)"
+            raise KeyError(msg)
         revealed = optional_dict(data, "revealed_output")
         return cls(
             outputs=outputs,

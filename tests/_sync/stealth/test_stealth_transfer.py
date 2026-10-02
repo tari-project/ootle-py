@@ -22,7 +22,12 @@ import pytest
 from tests._helpers.stealth import REVEALED_RECEIVER
 from ootle._sync.stealth.authorizer import WalletStealthAuthorizer
 from ootle._sync.stealth.transfer import StealthTransfer
-from ootle._types.stealth import Output, StealthOutputsStatement, StealthTransferStatement
+from ootle._types.stealth import (
+    Output,
+    RevealedOutput,
+    StealthOutputsStatement,
+    StealthTransferStatement,
+)
 from ootle._types.transaction import UnsignedTransaction
 from ootle.errors import InvalidArgumentError
 from tests._helpers.builder import build_body
@@ -148,7 +153,9 @@ def test_prepare_rejects_unexpected_provider_result_shape(httpx_mock: HTTPXMock)
     """A provider returning a non-result from the now-sync call is rejected, not awaited."""
 
     class _BadCrypto:
-        def generate_outputs_statement(self, _specs: object, _revealed: int) -> object:
+        def generate_outputs_statement(
+            self, _specs: object, _revealed: RevealedOutput | None
+        ) -> object:
             return "not a result"
 
     client = make_client(httpx_mock, crypto=_BadCrypto())

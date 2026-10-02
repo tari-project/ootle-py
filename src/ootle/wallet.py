@@ -188,5 +188,7 @@ class OotleWallet:
         """
         from ootle._wallet_stealth import generate_outputs_statement  # noqa: PLC0415
 
-        key = self.default_address.owner_pk if receiver is None else receiver
+        key = receiver
+        if key is None and revealed > 0:
+            key = self.default_address.owner_pk
         return generate_outputs_statement(self._crypto, specs, revealed, key)

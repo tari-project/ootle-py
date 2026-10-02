@@ -9,9 +9,10 @@ each is called out below.
 
 ### Changed
 
-- **Vendored `ootle-wasm` bumped to 0.42.0**, tracking the upstream
-  [`tari-ootle` v0.42.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.42.0)
-  release (a testnet reset).
+- **Vendored `ootle-wasm` bumped to 0.43.0**, tracking the upstream
+  [`tari-ootle` v0.43.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.43.0)
+  release. The wire changes below arrived in v0.42.0 (a testnet reset); v0.43.0
+  leaves the WASM exports and the endpoints this client uses unchanged.
 - **Revealed stealth outputs name their receiver.** Upstream replaced
   `StealthOutputsStatement.revealed_output_amount` with
   `revealed_output: RevealedOutput | None` — the amount plus the public key
@@ -21,10 +22,10 @@ each is called out below.
   `StealthTransferStatement.revealed_only` now take a `receiver`, and
   `StealthCryptoProvider.generate_outputs_statement` takes a
   `RevealedOutput | None` instead of an amount. `StealthTransfer` and
-  `OotleWallet.generate_outputs_statement` (the faucet stealth path) default
-  the receiver to the default account key, which seals the transaction.
-  `to_revealed_output(amount, receiver=...)` names another key; revealing zero
-  is now a no-op instead of an error.
+  `OotleWallet.generate_outputs_statement` (the faucet stealth path) name the
+  default account key, which seals the transaction (the wallet helper takes a
+  `receiver=` override). `to_revealed_output(0)` is now a no-op instead of an
+  error; negative amounts are still rejected, as upstream `Amount` is unsigned.
 - **Balance proofs commit to covenant claims.**
   `StealthCryptoProvider.generate_balance_proof_signature` gains a
   `covenant_claims_json` argument; the client builds none, so it signs `"[]"`.
@@ -36,8 +37,8 @@ each is called out below.
   pinned version wins) instead of appending.
 - **`ExecutionFailure` carries a `code`** (`ExecutionFailureCode`), parsed from
   upstream's `{code, message}` payload; `format_reject_reason` renders it as
-  `Execution failure (<code>): <message>`. The pre-0.42 bare-string form still
-  parses, as `Unclassified`.
+  `Execution failure (<code>): <message>`. A code newer than this client is
+  kept verbatim; the pre-0.42 bare-string form parses as `Unclassified`.
 
 ### Added
 

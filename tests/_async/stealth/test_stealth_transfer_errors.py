@@ -8,7 +8,7 @@ from pytest_httpx import HTTPXMock
 from ootle import AsyncOotleClient
 from ootle._async.stealth.transfer import AsyncStealthTransfer
 from ootle._crypto._stealth_provider import StealthOutputsStatementResult
-from ootle._types.stealth import Mask, StealthOutputsStatement
+from ootle._types.stealth import Mask, RevealedOutput, StealthOutputsStatement
 from ootle.errors import InvalidArgumentError
 from tests._async._helpers import mock_network
 from tests._async.stealth._builder_helpers import (
@@ -55,7 +55,9 @@ async def test_prepare_rejects_unexpected_provider_result_shape(
     mock_network(httpx_mock)
 
     class _BadCrypto:
-        def generate_outputs_statement(self, _specs: object, _revealed: int) -> object:
+        def generate_outputs_statement(
+            self, _specs: object, _revealed: RevealedOutput | None
+        ) -> object:
             return "not a result"
 
     client = await AsyncOotleClient.connect(

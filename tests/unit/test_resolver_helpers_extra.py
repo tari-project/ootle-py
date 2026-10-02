@@ -147,6 +147,12 @@ def test_fold_inputs_merges_declarations_of_one_substate() -> None:
     ]
 
 
+def test_fold_inputs_rejects_malformed_existing_input() -> None:
+    unsigned = UnsignedTransaction(json='{"inputs": [{"version": null}]}')
+    with pytest.raises(IndexerClientError, match="malformed input declaration"):
+        fold_inputs(unsigned, [SubstateRequirement(id=SubstateId("x"), version=None)])
+
+
 def test_fold_inputs_rejects_non_object_payload() -> None:
     bad = UnsignedTransaction(json='["not", "an", "object"]')
     with pytest.raises(IndexerClientError, match="must be an object"):

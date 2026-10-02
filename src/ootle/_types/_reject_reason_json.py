@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from typing import Any, cast, get_args
 
-from ootle._types._execution_failure_code import ExecutionFailureCode
 from ootle._types._json_helpers import as_dict, as_str, require_int
 from ootle._types.reject_reason import (
     Abort,
@@ -33,7 +32,6 @@ from ootle._types.reject_reason import (
 )
 
 _ABORT_REASON_VARIANTS: frozenset[str] = frozenset(get_args(AbortReason))
-_EXECUTION_FAILURE_CODES: frozenset[str] = frozenset(get_args(ExecutionFailureCode))
 
 # Newtype variants whose payload is a single string message.
 _STRING_NEWTYPE_VARIANTS: dict[
@@ -110,12 +108,8 @@ def _parse_execution_failure(payload: Any) -> ExecutionFailure:
     if isinstance(payload, str):
         return ExecutionFailure(message=payload)
     body = as_dict(payload)
-    code = body.get("code")
-    if not (isinstance(code, str) and code in _EXECUTION_FAILURE_CODES):
-        code = "Unclassified"
-    return ExecutionFailure(
-        message=as_str(body.get("message")), code=cast("ExecutionFailureCode", code)
-    )
+    # An unknown code is kept verbatim, as UnknownRejectReason keeps unknown variants.
+    return ExecutionFailure(message=as_str(body.get("message")), code=as_str(body.get("code")))
 
 
 def _as_abort_reason(value: Any) -> AbortReason:
