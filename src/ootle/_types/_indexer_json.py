@@ -78,7 +78,8 @@ def parse_transaction_result(payload: dict[str, Any]) -> tuple[bool, Transaction
 
     Returns ``(False, None)`` for the ``Pending`` variant. For
     ``Finalized``, returns ``(True, outcome)`` where outcome reflects
-    ``final_decision`` + ``execution_result.finalize.result``.
+    ``final_decision`` + ``execution_result.finalize.result``. ``Rejected``
+    (mempool validation refused it; never sequenced) is a final reject.
     """
     result = payload.get("result")
     if result == "Pending":
@@ -86,6 +87,10 @@ def parse_transaction_result(payload: dict[str, Any]) -> tuple[bool, Transaction
     if not isinstance(result, dict):
         msg = "expected `result` to be 'Pending' or an object"
         raise TypeError(msg)
+    rejected = cast("dict[str, Any]", result).get("Rejected")
+    if isinstance(rejected, dict):
+        details = cast("dict[str, Any]", rejected).get("details")
+        return True, TransactionOutcome.reject(_stringify(details))
     finalized = cast("dict[str, Any]", result).get("Finalized")
     if not isinstance(finalized, dict):
         msg = "expected `result.Finalized` to be an object"

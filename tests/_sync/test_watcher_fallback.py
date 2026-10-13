@@ -20,20 +20,41 @@ import ootle._sync._watcher._pending as pending_mod
 from ootle._sync._transport import IndexerTransport
 from ootle._sync._watcher import PendingTransaction
 from ootle._types.transaction import TransactionId
+from ootle.errors import TransactionRejectedError
 
 _TX = TransactionId("deadbeef" * 8)
 _FINALIZED_COMMIT = {"result": {"Finalized": {"final_decision": "Commit"}}}
+_FINALIZED_ABORT = {
+    "result": {
+        "Finalized": {
+            "final_decision": {"Abort": "ExecutionFailure"},
+            "execution_result": {
+                "finalize": {
+                    "result": {
+                        "Reject": {"ExecutionFailure": {"code": "TemplateError", "message": "boom"}}
+                    }
+                }
+            },
+        }
+    }
+}
 
 
 class _StubWatcher:
-    """Watcher whose registration future is cancelled, as on actor shutdown."""
+    """Watcher whose registration future never finalises.
 
-    def __init__(self) -> None:
+    With ``cancel=True`` the future is cancelled on registration, as on actor
+    shutdown; otherwise it stays pending, as when no SSE event arrives.
+    """
+
+    def __init__(self, *, cancel: bool = True) -> None:
+        self._cancel = cancel
         self.unregistered: list[str] = []
 
     def register(self, _tx_id: TransactionId) -> Future[str | None]:
         future: Future[str | None] = Future()
-        future.cancel()
+        if self._cancel:
+            future.cancel()
         return future
 
     def unregister(self, tx_id: TransactionId) -> None:
@@ -64,4 +85,19 @@ def test_watcher_cancel_falls_back_to_polling(
     outcome = _pending(watcher, transport).watch()
     transport.close()
     assert outcome.is_commit
+    assert watcher.unregistered == [_TX]
+
+
+def test_abort_surfaces_while_sse_is_silent(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An abort commits no receipt, so no SSE event comes; REST must report it."""
+    monkeypatch.setattr(pending_mod, "_ABORT_POLL_INTERVAL", 0.001)
+    transport = IndexerTransport("http://idx")
+    httpx_mock.add_response(url=_result_url(transport), json={"result": "Pending"})
+    httpx_mock.add_response(url=_result_url(transport), json=_FINALIZED_ABORT)
+    watcher = _StubWatcher(cancel=False)
+    with pytest.raises(TransactionRejectedError, match="TemplateError"):
+        _pending(watcher, transport).watch()
+    transport.close()
     assert watcher.unregistered == [_TX]

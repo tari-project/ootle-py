@@ -18,9 +18,24 @@ import ootle._async._watcher._pending as pending_mod
 from ootle._async._transport import AsyncIndexerTransport
 from ootle._async._watcher import AsyncPendingTransaction
 from ootle._types.transaction import TransactionId
+from ootle.errors import TransactionRejectedError
 
 _TX = TransactionId("deadbeef" * 8)
 _FINALIZED_COMMIT = {"result": {"Finalized": {"final_decision": "Commit"}}}
+_FINALIZED_ABORT = {
+    "result": {
+        "Finalized": {
+            "final_decision": {"Abort": "ExecutionFailure"},
+            "execution_result": {
+                "finalize": {
+                    "result": {
+                        "Reject": {"ExecutionFailure": {"code": "TemplateError", "message": "boom"}}
+                    }
+                }
+            },
+        }
+    }
+}
 
 
 class _StubWatcher:
@@ -80,3 +95,18 @@ async def test_caller_cancellation_propagates() -> None:
     with pytest.raises(asyncio.CancelledError):
         await task
     await transport.aclose()
+
+
+async def test_abort_surfaces_while_sse_is_silent(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An abort commits no receipt, so no SSE event comes; REST must report it."""
+    monkeypatch.setattr(pending_mod, "_ABORT_POLL_INTERVAL", 0.001)
+    transport = AsyncIndexerTransport("http://idx")
+    httpx_mock.add_response(url=_result_url(transport), json={"result": "Pending"})
+    httpx_mock.add_response(url=_result_url(transport), json=_FINALIZED_ABORT)
+    watcher = _StubWatcher(cancel=False)
+    with pytest.raises(TransactionRejectedError, match="TemplateError"):
+        await _pending(watcher, transport).watch()
+    await transport.aclose()
+    assert watcher.unregistered == [_TX]

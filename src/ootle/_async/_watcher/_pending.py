@@ -6,6 +6,10 @@ was submitted — see :class:`~ootle._async._watcher._actor.AsyncTransactionWatc
 and awaits the matching ``TransactionFinalized`` event. ``FeeIntentCommit``,
 any deadline, and an unavailable watcher all fall back to
 ``GET /transactions/{id}/result``, mirroring Rust's ``tx_watcher.rs``.
+
+The indexer emits that event only when a receipt commits, and an aborted
+transaction commits none, so the SSE wait also checks the REST result every
+``_ABORT_POLL_INTERVAL`` seconds to surface an abort before the deadline.
 """
 
 from __future__ import annotations
@@ -31,6 +35,8 @@ logger = logging.getLogger(__name__)
 _COMMIT_TAG = "Commit"
 _REST_POLL_INTERVAL = 1.0
 """Seconds between REST polls when the SSE watcher is unavailable."""
+_ABORT_POLL_INTERVAL = 2.0
+"""Seconds between REST checks while waiting on SSE (aborts emit no event)."""
 _RECEIPT_POLL_INTERVAL = 0.5
 """Seconds between receipt polls while the indexer persists the result."""
 _RECEIPT_WAIT_TIMEOUT = 10.0
@@ -67,10 +73,11 @@ class AsyncPendingTransaction:
         Returns :meth:`TransactionOutcome.commit` /
         :meth:`~TransactionOutcome.only_fee_commit`. ``Commit`` is taken
         from the SSE event directly; any other finalisation tag is confirmed
-        with a single REST result query. If the SSE wait yields nothing —
-        deadline reached, or the watcher stopped before finalisation — fall
-        back to polling REST for whatever time remains, matching the
-        resilience of the no-watcher path.
+        with a single REST result query. While waiting, the REST result is
+        checked every ``_ABORT_POLL_INTERVAL`` seconds, since an abort emits
+        no SSE event. If the SSE wait yields nothing — deadline reached, or
+        the watcher stopped before finalisation — fall back to polling REST
+        for whatever time remains, matching the no-watcher path.
 
         Raises:
             TransactionRejectedError: Consensus rejected the transaction.
@@ -79,11 +86,24 @@ class AsyncPendingTransaction:
         if self._watcher is None:
             return await self._poll_until_finalized(self._timeout)
         deadline = time.monotonic() + self._timeout
-        tag = await self._await_sse(self._watcher)
-        if tag == _COMMIT_TAG:
-            return TransactionOutcome.commit()
-        if tag is not None:
-            return await self._resolve_via_rest()
+        future = self._watcher.register(self.tx_id)
+        try:
+            while (remaining := deadline - time.monotonic()) > 0:
+                tag = await self._await_sse(future, min(_ABORT_POLL_INTERVAL, remaining))
+                if tag == _COMMIT_TAG:
+                    return TransactionOutcome.commit()
+                if tag is not None:
+                    return await self._resolve_via_rest()
+                # Watcher stopped, an event without a usable tag, or the deadline: poll below.
+                if future.done() or time.monotonic() >= deadline:
+                    break
+                is_finalized, outcome = await self._transport.get_transaction_result(self.tx_id)
+                if is_finalized and outcome is not None:
+                    return self._classify(outcome)
+        finally:
+            self._watcher.unregister(self.tx_id)
+        if not future.done():
+            logger.warning("transaction %s: SSE deadline reached, polling result", self.tx_id)
         return await self._poll_until_finalized(max(deadline - time.monotonic(), 0.0))
 
     async def get_receipt(self, *, timeout: float | None = None) -> TransactionReceipt:
@@ -111,20 +131,16 @@ class AsyncPendingTransaction:
                 raise IndexerClientError(msg, status=404, body="", url=self._transport.url)
             await asyncio.sleep(_RECEIPT_POLL_INTERVAL)
 
-    async def _await_sse(self, watcher: AsyncTransactionWatcher) -> str | None:
-        future = watcher.register(self.tx_id)
+    async def _await_sse(self, future: asyncio.Future[str | None], timeout: float) -> str | None:
         try:
-            return await asyncio.wait_for(future, self._timeout)
+            return await asyncio.wait_for(asyncio.shield(future), timeout)
         except TimeoutError:
-            logger.warning("transaction %s: SSE deadline reached, polling result", self.tx_id)
             return None
         except asyncio.CancelledError:
             if not future.cancelled() or _caller_cancelling():
                 raise
             logger.warning("transaction %s: SSE watcher stopped, polling result", self.tx_id)
             return None
-        finally:
-            watcher.unregister(self.tx_id)
 
     async def _resolve_via_rest(self) -> TransactionOutcome:
         is_finalized, outcome = await self._transport.get_transaction_result(self.tx_id)
