@@ -34,13 +34,18 @@ def test_cbor_encode_bool_roundtrips(value: bool) -> None:
     assert cbor2.loads(blob) is value
 
 
-def test_cbor_encode_amount_zero() -> None:
-    assert cbor2.loads(cbor_encode_amount(0)) == [0, 0]
-
-
-def test_cbor_encode_amount_splits_u64() -> None:
-    n = (1 << 64) + 7
-    assert cbor2.loads(cbor_encode_amount(n)) == [7, 1]
+@pytest.mark.parametrize(
+    ("value", "expected_hex"),
+    [
+        (0, "00"),
+        (500, "1901f4"),
+        ((1 << 64) - 1, "1bffffffffffffffff"),
+        ((1 << 64) + 7, "c249010000000000000007"),
+    ],
+)
+def test_cbor_encode_amount_matches_minicbor_u128(value: int, expected_hex: str) -> None:
+    """A uint up to u64::MAX, then a tag-2 bignum — ``minicbor::Encoder::u128``."""
+    assert cbor_encode_amount(value).hex() == expected_hex
 
 
 def test_cbor_encode_amount_rejects_negative() -> None:

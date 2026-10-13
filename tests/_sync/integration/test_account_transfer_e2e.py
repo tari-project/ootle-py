@@ -21,7 +21,6 @@ from ootle import (
     ResourceAddress,
 )
 from ootle._types._tari_constants import TARI_TOKEN
-from ootle._types.address import ComponentAddress
 
 pytestmark = pytest.mark.integration
 
@@ -35,7 +34,7 @@ def test_account_transfer_e2e(indexer_url: str) -> None:
         indexer_url, wallet=sender_wallet, transaction_timeout=120.0
     ) as client:
         # Fund the sender via the faucet.
-        unsigned = client.faucet().take_funds().pay_fee(500).prepare()
+        unsigned = client.faucet().take_funds().pay_fee(5_000).prepare()
         sealed = client.seal_transaction(unsigned)
         pending = client.send_transaction(sealed)
         assert (pending.with_timeout(120).watch()).is_commit
@@ -45,7 +44,7 @@ def test_account_transfer_e2e(indexer_url: str) -> None:
         recipient_addr = recipient_secret.to_address()
         unsigned = (
             client.account()
-            .pay_fee(500)
+            .pay_fee(5_000)
             .public_transfer(recipient_addr, tari_resource, 2 * TARI)
             .prepare()
         )
@@ -53,6 +52,6 @@ def test_account_transfer_e2e(indexer_url: str) -> None:
         pending = client.send_transaction(sealed)
         assert (pending.with_timeout(120).watch()).is_commit
 
-        recipient_account = ComponentAddress(recipient_addr.bech32m)
+        recipient_account = recipient_addr.to_component_address()
         balance = client.get_account_balance(recipient_account, tari_resource)
         assert balance >= 2 * TARI

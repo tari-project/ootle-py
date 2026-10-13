@@ -75,7 +75,7 @@ async def main() -> None:
         default_indexer_url(Network.LOCAL_NET), wallet=wallet
     ) as client:
         # Faucet the public XTR faucet's fixed dispense into the sender.
-        funded = await client.faucet().take_funds().pay_fee(500).prepare()
+        funded = await client.faucet().take_funds().pay_fee(5_000).prepare()
         await (await client.send_transaction(client.seal_transaction(funded))).watch()
 
         # Transfer 2 TARI to a fresh recipient.

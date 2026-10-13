@@ -31,8 +31,8 @@ if TYPE_CHECKING:
 
 
 _TARI_RESOURCE = ResourceAddress(TARI_TOKEN)
-DEFAULT_FAUCET_FEE: int = 1_000
-DEFAULT_TRANSFER_FEE: int = 500
+DEFAULT_FAUCET_FEE: int = 20_000
+DEFAULT_TRANSFER_FEE: int = 20_000
 
 
 async def faucet_revealed(

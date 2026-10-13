@@ -19,6 +19,7 @@ from ootle import (
     OotleSecretKey,
     OotleWallet,
     ResourceAddress,
+    TransactionAuthorization,
     TransactionRequest,
 )
 from ootle._crypto import load_default_provider
@@ -32,16 +33,16 @@ async def test_multi_signer_e2e(indexer_url: str) -> None:
     b_secret = OotleSecretKey.random(Network.LOCAL_NET)
     recipient_secret = OotleSecretKey.random(Network.LOCAL_NET)
 
-    # A seals; B co-authorises from a separate wallet so the seal step
-    # does not double-sign B.
+    # A seals; B co-authorises as a standalone signer, committing to A's
+    # seal key, so the seal step does not double-sign B.
     wallet_a = OotleWallet(LocalSigner(a_secret))
-    wallet_b = OotleWallet(LocalSigner(b_secret))
+    signer_b = LocalSigner(b_secret)
 
     async with AsyncOotleClient.connect(
         indexer_url, wallet=wallet_a, transaction_timeout=120.0
     ) as client:
         # Fund the sender via the faucet.
-        unsigned = await client.faucet().take_funds().pay_fee(500).prepare()
+        unsigned = await client.faucet().take_funds().pay_fee(5_000).prepare()
         sealed = client.seal_transaction(unsigned)
         pending = await client.send_transaction(sealed)
         assert (await pending.with_timeout(120).watch()).is_commit
@@ -52,13 +53,16 @@ async def test_multi_signer_e2e(indexer_url: str) -> None:
         # Build the unsigned transaction.
         unsigned = await (
             client.account()
-            .pay_fee(500)
+            .pay_fee(5_000)
             .public_transfer(recipient_addr, tari_resource, 1 * TARI)
             .prepare()
         )
         # Co-signer B authorises.
         crypto = load_default_provider()
-        auth_b = wallet_b.authorize(b_secret.to_address(), unsigned, crypto=crypto)
+        seal_pk = a_secret.to_address().owner_pk
+        auth_b = TransactionAuthorization(
+            json=signer_b.add_signature(unsigned.json, seal_pk, crypto=crypto)
+        )
         # Default signer A seals + sends with B's authorisation folded in.
         request = TransactionRequest().with_transaction(unsigned).add_authorization(auth_b)
         sealed = client.seal_transaction(request)

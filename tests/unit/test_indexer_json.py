@@ -45,6 +45,15 @@ def test_transaction_result_rejects_non_object_finalized() -> None:
         parse_transaction_result({"result": {"Finalized": "not-an-object"}})
 
 
+def test_transaction_result_mempool_rejected_is_final_reject() -> None:
+    payload = {"result": {"Rejected": {"details": "bad seal", "rejected_time": "2026-10-13"}}}
+    is_finalized, outcome = parse_transaction_result(payload)
+    assert is_finalized
+    assert outcome is not None
+    assert outcome.is_reject
+    assert outcome.reason == "bad seal"
+
+
 def test_transaction_result_commit_decision() -> None:
     payload = {"result": {"Finalized": {"final_decision": "Commit"}}}
     is_finalized, outcome = parse_transaction_result(payload)

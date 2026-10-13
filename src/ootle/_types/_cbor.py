@@ -20,9 +20,6 @@ if TYPE_CHECKING:
     from ootle._types.amount import Amount
 
 
-_U64_MASK = (1 << 64) - 1
-
-
 def cbor_encode_resource_address(addr: str) -> bytes:
     """CBOR-encode a ``ResourceAddress`` as ``BinaryTag::ResourceAddress(ObjectKey)``.
 
@@ -61,10 +58,11 @@ def cbor_encode_metadata(entries: Mapping[str, str]) -> bytes:
 
 
 def cbor_encode_amount(value: Amount | int) -> bytes:
-    """CBOR-encode an Amount as the ``[lo, hi]`` u64 LE-digit pair.
+    """CBOR-encode an Amount as upstream's ``minicbor`` ``u128``.
 
-    Mirrors the Rust ``Amount::serialize`` impl in the non-human-readable
-    branch (the path used by ``tari_bor::encode``).
+    A plain unsigned integer up to ``u64::MAX``, a tag-2 positive bignum
+    above it — which is how ``cbor2`` encodes a Python ``int``. The engine
+    rejects any other shape for an ``Amount`` argument.
     """
     n = int(value)
     if n < 0:
@@ -73,6 +71,4 @@ def cbor_encode_amount(value: Amount | int) -> bytes:
     if (n >> 128) != 0:
         msg = f"Amount overflows u128: {n}"
         raise ValueError(msg)
-    lo = n & _U64_MASK
-    hi = (n >> 64) & _U64_MASK
-    return cbor2.dumps([lo, hi])
+    return cbor2.dumps(n)

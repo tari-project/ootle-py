@@ -14,24 +14,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
+    from ootle._types._abort_reason import AbortReason
     from ootle._types._execution_failure_code import ExecutionFailureCode
-
-AbortReason = Literal[
-    "ForeignPledgeInputConflict",
-    "LockInputsFailed",
-    "LockOutputsFailed",
-    "LockInputsOutputsFailed",
-    "ExecutionFailure",
-    "OneOrMoreInputsNotFound",
-    "InsufficientFeesPaid",
-    "FeePaymentInMainIntent",
-    "EpochExpired",
-]
-"""Categorical reason an abort happened — Rust ``AbortReason`` enum.
-
-The TS bindings (v1.30.0) miss ``EpochExpired``; Python follows Rust,
-which is the canonical spec.
-"""
 
 
 @dataclass(frozen=True, slots=True)

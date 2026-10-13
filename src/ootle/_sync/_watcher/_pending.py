@@ -15,6 +15,7 @@ import dataclasses
 import logging
 import time
 from concurrent.futures import CancelledError as FutureCancelledError
+from concurrent.futures import Future
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Self
 
@@ -32,6 +33,8 @@ logger = logging.getLogger(__name__)
 _COMMIT_TAG = "Commit"
 _REST_POLL_INTERVAL = 1.0
 """Seconds between REST polls when the SSE watcher is unavailable."""
+_ABORT_POLL_INTERVAL = 2.0
+"""Seconds between REST checks while waiting on SSE (aborts emit no event)."""
 _RECEIPT_POLL_INTERVAL = 0.5
 """Seconds between receipt polls while the indexer persists the result."""
 _RECEIPT_WAIT_TIMEOUT = 10.0
@@ -57,10 +60,11 @@ class PendingTransaction:
         Returns :meth:`TransactionOutcome.commit` /
         :meth:`~TransactionOutcome.only_fee_commit`. ``Commit`` is taken
         from the SSE event directly; any other finalisation tag is confirmed
-        with a single REST result query. If the SSE wait yields nothing —
-        deadline reached, or the watcher stopped before finalisation — fall
-        back to polling REST for whatever time remains, matching the
-        resilience of the no-watcher path.
+        with a single REST result query. While waiting, the REST result is
+        checked every ``_ABORT_POLL_INTERVAL`` seconds, since an abort emits
+        no SSE event. If the SSE wait yields nothing — deadline reached, or
+        the watcher stopped before finalisation — fall back to polling REST
+        for whatever time remains, matching the no-watcher path.
 
         Raises:
             TransactionRejectedError: Consensus rejected the transaction.
@@ -69,11 +73,24 @@ class PendingTransaction:
         if self._watcher is None:
             return self._poll_until_finalized(self._timeout)
         deadline = time.monotonic() + self._timeout
-        tag = self._await_sse(self._watcher)
-        if tag == _COMMIT_TAG:
-            return TransactionOutcome.commit()
-        if tag is not None:
-            return self._resolve_via_rest()
+        future = self._watcher.register(self.tx_id)
+        try:
+            while (remaining := deadline - time.monotonic()) > 0:
+                tag = self._await_sse(future, min(_ABORT_POLL_INTERVAL, remaining))
+                if tag == _COMMIT_TAG:
+                    return TransactionOutcome.commit()
+                if tag is not None:
+                    return self._resolve_via_rest()
+                # Watcher stopped, an event without a usable tag, or the deadline: poll below.
+                if future.done() or time.monotonic() >= deadline:
+                    break
+                is_finalized, outcome = self._transport.get_transaction_result(self.tx_id)
+                if is_finalized and outcome is not None:
+                    return self._classify(outcome)
+        finally:
+            self._watcher.unregister(self.tx_id)
+        if not future.done():
+            logger.warning("transaction %s: SSE deadline reached, polling result", self.tx_id)
         return self._poll_until_finalized(max(deadline - time.monotonic(), 0.0))
 
     def get_receipt(self, *, timeout: float | None = None) -> TransactionReceipt:
@@ -101,20 +118,16 @@ class PendingTransaction:
                 raise IndexerClientError(msg, status=404, body="", url=self._transport.url)
             time.sleep(_RECEIPT_POLL_INTERVAL)
 
-    def _await_sse(self, watcher: TransactionWatcher) -> str | None:
-        future = watcher.register(self.tx_id)
+    def _await_sse(self, future: Future[str | None], timeout: float) -> str | None:
         try:
             # concurrent.futures.TimeoutError is an alias of builtin TimeoutError (3.11+).
-            return future.result(self._timeout)
+            return future.result(timeout)
         except TimeoutError:
-            logger.warning("transaction %s: SSE deadline reached, polling result", self.tx_id)
             return None
         except FutureCancelledError:
             # The watcher cancelled the registered future on shutdown; fall back to REST.
             logger.warning("transaction %s: SSE watcher stopped, polling result", self.tx_id)
             return None
-        finally:
-            watcher.unregister(self.tx_id)
 
     def _resolve_via_rest(self) -> TransactionOutcome:
         is_finalized, outcome = self._transport.get_transaction_result(self.tx_id)

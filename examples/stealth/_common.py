@@ -63,7 +63,7 @@ __all__ = [
     "wait",
 ]
 
-DEFAULT_FAUCET_FEE = 1_000
+DEFAULT_FAUCET_FEE = 20_000
 
 # The indexer can emit the SSE "committed" event a beat before the full receipt
 # diff is queryable, so reading the UTXO right after `watch()` occasionally races.

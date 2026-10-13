@@ -5,6 +5,34 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [0.3.1] — 2026-10-13
+
+### Changed
+
+- **Vendored `ootle-wasm` bumped to 0.46.0**, tracking the upstream
+  [`tari-ootle` v0.46.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.46.0)
+  release (protocol V2; non-Esmeralda networks reset). The blob's exports and
+  imports are unchanged from 0.43.0, and the indexer endpoints this client
+  uses only gained optional fields.
+
+### Fixed
+
+- **`AbortReason` covers `ValidityWindowTooLong` and `InputPledgeTooLarge`.**
+  A result aborted for either reason failed to parse with
+  `unknown AbortReason variant`.
+- **`Amount` instruction arguments encode as a CBOR `u128`** (a plain
+  integer, or a tag-2 bignum above `u64::MAX`), matching upstream's
+  `minicbor` codec. The old `[lo, hi]` array is refused by the 0.46 engine
+  (`unexpected type array ... expected u128`), which broke every `pay_fee`.
+- **`watch()` raises promptly when a transaction aborts.** The indexer's
+  `TransactionFinalized` event fires only when a receipt commits, and an
+  aborted transaction commits none, so `watch()` waited out its whole
+  timeout. It now checks the REST result every 2 s while waiting on SSE.
+- **A mempool-rejected transaction result parses as a reject.** The
+  indexer's `Rejected` result variant raised `TypeError`.
+- Default faucet fees in the README and examples raised for 0.46 pricing
+  (a faucet take now costs about 1.9k, a stealth faucet about 11.7k).
+
 ## [0.3.0] — 2026-10-02
 
 ### Changed
