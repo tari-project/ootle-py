@@ -21,26 +21,26 @@ from ootle._types.instructions import (
 def test_cbor_encode_amount_zero() -> None:
     encoded = cbor_encode_amount(Amount(0))
     decoded = cbor2.loads(encoded)
-    assert decoded == [0, 0]
+    assert decoded == 0
 
 
 def test_cbor_encode_amount_small() -> None:
     encoded = cbor_encode_amount(Amount(1000))
     decoded = cbor2.loads(encoded)
-    assert decoded == [1000, 0]
+    assert decoded == 1000
 
 
 def test_cbor_encode_amount_above_u64() -> None:
     value = (1 << 64) + 7
     encoded = cbor_encode_amount(value)
-    assert cbor2.loads(encoded) == [7, 1]
+    assert cbor2.loads(encoded) == value
 
 
 def test_amount_literal_round_trip() -> None:
     lit = amount_literal(10 * TARI)
     assert isinstance(lit, InstructionArgLiteral)
     body_bytes = bytes.fromhex(lit.body_hex)
-    assert cbor2.loads(body_bytes) == [10 * TARI, 0]
+    assert cbor2.loads(body_bytes) == 10 * TARI
 
 
 def test_call_method_to_json() -> None:

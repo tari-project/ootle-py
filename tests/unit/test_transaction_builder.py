@@ -151,4 +151,4 @@ def test_amount_literal_round_trip_in_pay_fee() -> None:
     body_bytes = bytes.fromhex(arg["Literal"])
     import cbor2  # noqa: PLC0415
 
-    assert cbor2.loads(body_bytes) == [10 * TARI, 0]
+    assert cbor2.loads(body_bytes) == 10 * TARI
