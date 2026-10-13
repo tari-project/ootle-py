@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pytest
 
+from ootle._types._abort_reason import AbortReason
 from ootle._types._reject_reason_json import parse_reject_reason
 from ootle._types.reject_reason import (
     Abort,
@@ -124,6 +125,20 @@ def test_parse_epoch_expired_abort_reason() -> None:
     assert parse_reject_reason({"Abort": {"reason": "EpochExpired"}}) == Abort(
         reason="EpochExpired"
     )
+
+
+@pytest.mark.parametrize("reason", ["ValidityWindowTooLong", "InputPledgeTooLarge"])
+def test_parse_later_abort_reasons(reason: AbortReason) -> None:
+    assert parse_reject_reason({"Abort": {"reason": reason}}) == Abort(reason=reason)
+    assert parse_reject_reason(
+        {
+            "ForeignShardGroupDecidedToAbort": {
+                "start_shard": 0,
+                "end_shard": 1,
+                "abort_reason": reason,
+            }
+        }
+    ) == ForeignShardGroupDecidedToAbort(start_shard=0, end_shard=1, abort_reason=reason)
 
 
 def test_format_reject_reason_matches_rust_display() -> None:

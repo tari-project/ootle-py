@@ -15,10 +15,10 @@ from __future__ import annotations
 
 from typing import Any, cast, get_args
 
+from ootle._types._abort_reason import AbortReason
 from ootle._types._json_helpers import as_dict, as_str, require_int
 from ootle._types.reject_reason import (
     Abort,
-    AbortReason,
     ExecutionFailure,
     FailedToLockInputs,
     FailedToLockOutputs,

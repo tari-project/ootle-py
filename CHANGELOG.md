@@ -5,6 +5,22 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [Unreleased]
+
+### Changed
+
+- **Vendored `ootle-wasm` bumped to 0.46.0**, tracking the upstream
+  [`tari-ootle` v0.46.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.46.0)
+  release (protocol V2; non-Esmeralda networks reset). The blob's exports and
+  imports are unchanged from 0.43.0, and the indexer endpoints this client
+  uses only gained optional fields.
+
+### Fixed
+
+- **`AbortReason` covers `ValidityWindowTooLong` and `InputPledgeTooLarge`.**
+  A result aborted for either reason failed to parse with
+  `unknown AbortReason variant`.
+
 ## [0.3.0] — 2026-10-02
 
 ### Changed

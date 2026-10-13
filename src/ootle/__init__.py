@@ -26,6 +26,7 @@ from ootle._sync.client import OotleClient
 from ootle._sync.stealth.authorizer import WalletStealthAuthorizer
 from ootle._sync.stealth.transfer import StealthTransfer
 from ootle._transaction_builder import TransactionBuilder
+from ootle._types._abort_reason import AbortReason
 from ootle._types._execution_failure_code import ExecutionFailureCode
 from ootle._types._tari_constants import TARI_TOKEN
 from ootle._types.address import (
@@ -44,7 +45,6 @@ from ootle._types.outcome import TransactionOutcome
 from ootle._types.receipt import TransactionReceipt
 from ootle._types.reject_reason import (
     Abort,
-    AbortReason,
     ExecutionFailure,
     FailedToLockInputs,
     FailedToLockOutputs,
