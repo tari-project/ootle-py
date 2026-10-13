@@ -26,7 +26,7 @@ def test_faucet_e2e(indexer_url: str) -> None:
     secret = OotleSecretKey.random(Network.LOCAL_NET)
     wallet = OotleWallet(LocalSigner(secret))
     with OotleClient.connect(indexer_url, wallet=wallet, transaction_timeout=120.0) as client:
-        unsigned = client.faucet().take_funds().pay_fee(500).prepare()
+        unsigned = client.faucet().take_funds().pay_fee(5_000).prepare()
         sealed = client.seal_transaction(unsigned)
         pending = client.send_transaction(sealed)
         outcome = pending.with_timeout(120).watch()

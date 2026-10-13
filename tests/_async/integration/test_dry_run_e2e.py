@@ -25,7 +25,7 @@ async def test_dry_run_estimates_fee(indexer_url: str) -> None:
     secret = OotleSecretKey.random(Network.LOCAL_NET)
     wallet = OotleWallet(LocalSigner(secret))
     async with AsyncOotleClient.connect(indexer_url, wallet=wallet) as client:
-        unsigned = await client.faucet().take_funds().pay_fee(500).prepare()
+        unsigned = await client.faucet().take_funds().pay_fee(5_000).prepare()
         result = await client.send_dry_run(unsigned)
     assert result.estimated_fee > 0
     assert result.outcome is not None

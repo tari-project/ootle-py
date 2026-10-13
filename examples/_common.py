@@ -59,7 +59,7 @@ __all__ = [
 
 NETWORK = Network.LOCAL_NET
 TARI_RESOURCE = ResourceAddress(TARI_TOKEN)
-DEFAULT_FAUCET_FEE = 500
+DEFAULT_FAUCET_FEE = 5_000
 
 
 def indexer_url() -> str:

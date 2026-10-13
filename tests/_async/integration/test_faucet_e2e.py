@@ -28,7 +28,7 @@ async def test_faucet_e2e(indexer_url: str) -> None:
     async with AsyncOotleClient.connect(
         indexer_url, wallet=wallet, transaction_timeout=120.0
     ) as client:
-        unsigned = await client.faucet().take_funds().pay_fee(500).prepare()
+        unsigned = await client.faucet().take_funds().pay_fee(5_000).prepare()
         sealed = client.seal_transaction(unsigned)
         pending = await client.send_transaction(sealed)
         outcome = await pending.with_timeout(120).watch()
