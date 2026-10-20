@@ -11,6 +11,9 @@ from typing import Any, cast
 import pytest
 
 from ootle._crypto._bridge import Bridge, _abi, load_default_bridge
+from ootle._crypto._bridge._imports import (
+    _build_handlers,  # pyright: ignore[reportPrivateUsage]  # internal access
+)
 
 
 @pytest.fixture(scope="module")
@@ -68,3 +71,25 @@ def test_panic_path_via_invalid_address_surface(bridge: Bridge) -> None:
     err = _abi.take_externref(bridge, int(ret[1]))
     assert isinstance(err, str)
     assert "Bech32" in err or "address" in err.lower()
+
+
+def test_bigint_import_handlers(bridge: Bridge) -> None:
+    handlers = _build_handlers(bridge)
+    cast_u64 = handlers["__wbindgen_generic_0000000000000001"]
+    get_as_i64 = handlers["__wbg___wbindgen_bigint_get_as_i64_b482365c149396c8"]
+    jsval_eq = handlers["__wbg___wbindgen_jsval_eq_9fdcd3c0a860dd3b"]
+
+    assert cast_u64(-1) == 2**64 - 1
+    assert jsval_eq(5, 5) == 1
+    assert jsval_eq(True, 1) == 0
+
+    ptr, length = _abi.alloc_bytes(bridge, bytes(16))
+    try:
+        get_as_i64(ptr, 2**64 - 1)
+        assert _abi.read_bytes(bridge, ptr, 4) == (1).to_bytes(4, "little")
+        assert _abi.read_bytes(bridge, ptr + 8, 8) == b"\xff" * 8
+        get_as_i64(ptr, "not a bigint")
+        assert _abi.read_bytes(bridge, ptr, 4) == bytes(4)
+        assert _abi.read_bytes(bridge, ptr + 8, 8) == bytes(8)
+    finally:
+        _abi.free(bridge, ptr, length)
