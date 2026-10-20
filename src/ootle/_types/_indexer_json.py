@@ -5,7 +5,7 @@ Distinct from :mod:`ootle._types._json` so the file stays under the
 ``tari_indexer_client`` to the project's domain types:
 
 - ``GET network`` → :class:`NetworkInfo`
-- ``GET substates/{id}`` → :class:`Substate`
+- ``GET substates/{id}`` → :class:`Substate` (``None`` when the version is down)
 - ``POST substates/fetch`` → ``dict[SubstateId, Substate]``
 - ``POST transactions`` → :class:`TransactionId`
 - ``GET transactions/{id}/result`` → tuple ``(is_finalized, outcome | None)``
@@ -38,12 +38,26 @@ def parse_network_info(payload: dict[str, Any]) -> NetworkInfo:
     )
 
 
-def parse_indexer_substate(id_: SubstateId, payload: dict[str, Any]) -> Substate:
-    """Parse ``GET substates/{id}`` → :class:`Substate`.
+def parse_indexer_substate(id_: SubstateId, payload: dict[str, Any]) -> Substate | None:
+    """Parse ``GET substates/{id}`` → :class:`Substate`, or ``None`` when down.
 
-    The response shape is ``{version, substate}`` (no ``id``); the id is
-    the URL parameter. We synthesise the envelope by attaching ``id_``.
+    The response shape is ``{version, state, verified, proof?}`` (no ``id``),
+    where ``state`` is ``{"up": {"substate": ...}}`` or ``{"down": {}}``. The
+    id is the URL parameter, so we synthesise the envelope by attaching
+    ``id_``. A down answer only follows an ``include_proof`` request, which
+    this client never sends, but it means "spent", so it maps to ``None``.
     """
+    state = require_dict(payload, "state")
+    if "down" in state:
+        return None
+    return Substate(
+        id=id_,
+        version=require_int(payload, "version"),
+        value=parse_substate_value(require_dict(require_dict(state, "up"), "substate")),
+    )
+
+
+def _parse_versioned(id_: SubstateId, payload: dict[str, Any]) -> Substate:
     return Substate(
         id=id_,
         version=require_int(payload, "version"),
@@ -64,7 +78,7 @@ def parse_indexer_substates_map(payload: dict[str, Any]) -> dict[SubstateId, Sub
             msg = f"substates['{key}'] must be an object, got {type(value).__name__}"
             raise TypeError(msg)
         sub_id = SubstateId(key)
-        result[sub_id] = parse_indexer_substate(sub_id, cast("dict[str, Any]", value))
+        result[sub_id] = _parse_versioned(sub_id, cast("dict[str, Any]", value))
     return result
 
 

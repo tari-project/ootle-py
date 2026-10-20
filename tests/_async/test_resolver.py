@@ -15,7 +15,11 @@ from ootle._types.substate import SubstateId
 from ootle._types.transaction import UnsignedTransaction
 from ootle._types.want_input import WantInput
 from ootle.errors import IndexerClientError
-from tests._helpers.substates import component_value, envelope, fungible_vault_value
+from tests._helpers.substates import (
+    batch_entry,
+    component_value,
+    fungible_vault_value,
+)
 
 
 def _empty_unsigned() -> UnsignedTransaction:
@@ -100,12 +104,14 @@ async def test_vault_for_resource_two_pass_fixed_point(httpx_mock: HTTPXMock) ->
     httpx_mock.add_response(
         url="http://idx/substates/fetch",
         method="POST",
-        json={"substates": {component: envelope(component_value({TARI_TOKEN: vault}), version=1)}},
+        json={
+            "substates": {component: batch_entry(component_value({TARI_TOKEN: vault}), version=1)}
+        },
     )
     httpx_mock.add_response(
         url="http://idx/substates/fetch",
         method="POST",
-        json={"substates": {vault: envelope(fungible_vault_value(TARI_TOKEN, 100), version=1)}},
+        json={"substates": {vault: batch_entry(fungible_vault_value(TARI_TOKEN, 100), version=1)}},
     )
     transport = AsyncIndexerTransport("http://idx")
     resolver = AsyncTransactionInputResolver(transport)

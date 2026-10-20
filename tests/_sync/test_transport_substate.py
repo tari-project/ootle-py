@@ -13,18 +13,23 @@ def test_fetch_substate_happy_path(httpx_mock: HTTPXMock) -> None:
         url="http://idx/substates/vault_abc",
         json={
             "version": 7,
-            "substate": {
-                "Vault": {
-                    "resource_container": {
-                        "Stealth": {
-                            "address": "resource_aaaa",
-                            "revealed_amount": "100",
-                            "locked_amount": "0",
+            "state": {
+                "up": {
+                    "substate": {
+                        "Vault": {
+                            "resource_container": {
+                                "Stealth": {
+                                    "address": "resource_aaaa",
+                                    "revealed_amount": "100",
+                                    "locked_amount": "0",
+                                }
+                            },
+                            "freeze_flags": 0,
                         }
-                    },
-                    "freeze_flags": 0,
+                    }
                 }
             },
+            "verified": True,
         },
     )
     with IndexerTransport("http://idx") as transport:

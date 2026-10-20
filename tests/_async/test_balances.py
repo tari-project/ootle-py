@@ -7,7 +7,12 @@ from pytest_httpx import HTTPXMock
 from ootle._async.client import AsyncOotleClient
 from ootle._types.address import ComponentAddress, ResourceAddress
 from ootle._types.amount import Amount
-from tests._helpers.substates import component_value, envelope, fungible_vault_value
+from tests._helpers.substates import (
+    batch_entry,
+    component_value,
+    envelope,
+    fungible_vault_value,
+)
 
 from ._helpers import mock_network
 
@@ -29,8 +34,8 @@ async def test_get_account_balance_returns_matching_resource(httpx_mock: HTTPXMo
         method="POST",
         json={
             "substates": {
-                VAULT_TARI: envelope(fungible_vault_value(RESOURCE_TARI, 100)),
-                VAULT_USDT: envelope(fungible_vault_value(RESOURCE_USDT, 25)),
+                VAULT_TARI: batch_entry(fungible_vault_value(RESOURCE_TARI, 100)),
+                VAULT_USDT: batch_entry(fungible_vault_value(RESOURCE_USDT, 25)),
             }
         },
     )
@@ -49,7 +54,7 @@ async def test_get_account_balance_missing_resource_returns_zero(httpx_mock: HTT
     httpx_mock.add_response(
         url="http://idx/substates/fetch",
         method="POST",
-        json={"substates": {VAULT_TARI: envelope(fungible_vault_value(RESOURCE_TARI, 100))}},
+        json={"substates": {VAULT_TARI: batch_entry(fungible_vault_value(RESOURCE_TARI, 100))}},
     )
 
     async with AsyncOotleClient.connect("http://idx") as client:
@@ -68,8 +73,8 @@ async def test_get_account_balances_returns_all_vaults(httpx_mock: HTTPXMock) ->
         method="POST",
         json={
             "substates": {
-                VAULT_TARI: envelope(fungible_vault_value(RESOURCE_TARI, 100)),
-                VAULT_USDT: envelope(fungible_vault_value(RESOURCE_USDT, 25)),
+                VAULT_TARI: batch_entry(fungible_vault_value(RESOURCE_TARI, 100)),
+                VAULT_USDT: batch_entry(fungible_vault_value(RESOURCE_USDT, 25)),
             }
         },
     )
