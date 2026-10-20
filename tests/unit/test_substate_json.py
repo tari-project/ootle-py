@@ -155,8 +155,19 @@ def test_parse_amount_rejects_other_types(bad: object) -> None:
         parse_amount(bad)
 
 
+def _get_response(name: str) -> dict[str, Any]:
+    fixture = _envelope(name)
+    return {"version": fixture["version"], "state": {"up": {"substate": fixture["substate"]}}}
+
+
 def test_parse_indexer_substate_threads_id_and_version() -> None:
-    sub = parse_indexer_substate(SubstateId("component_c9"), _envelope("component.json"))
+    sub = parse_indexer_substate(SubstateId("component_c9"), _get_response("component.json"))
+    assert sub is not None
     assert sub.id == SubstateId("component_c9")
     assert sub.version == 0
     assert isinstance(sub.value, ComponentSubstateValue)
+
+
+def test_parse_indexer_substate_down_returns_none() -> None:
+    payload: dict[str, Any] = {"version": 3, "state": {"down": {}}, "verified": True}
+    assert parse_indexer_substate(SubstateId("component_c9"), payload) is None

@@ -51,8 +51,8 @@ def stub_substates_for_account(httpx_mock: HTTPXMock, signer_account: str) -> No
     """
     from ootle._types._tari_constants import TARI_TOKEN  # noqa: PLC0415
     from tests._helpers.substates import (  # noqa: PLC0415
+        batch_entry,
         component_value,
-        envelope,
         fungible_vault_value,
     )
 
@@ -61,10 +61,10 @@ def stub_substates_for_account(httpx_mock: HTTPXMock, signer_account: str) -> No
         method="POST",
         json={
             "substates": {
-                str(COMPONENT): envelope(component_value({str(RESOURCE): VAULT_ID})),
-                VAULT_ID: envelope(fungible_vault_value(str(RESOURCE), 1_000)),
-                str(RESOURCE): envelope({"Resource": {"total_supply": "1000"}}),
-                UTXO_ID: envelope(
+                str(COMPONENT): batch_entry(component_value({str(RESOURCE): VAULT_ID})),
+                VAULT_ID: batch_entry(fungible_vault_value(str(RESOURCE), 1_000)),
+                str(RESOURCE): batch_entry({"Resource": {"total_supply": "1000"}}),
+                UTXO_ID: batch_entry(
                     {
                         "Utxo": {
                             "output": {
@@ -81,10 +81,10 @@ def stub_substates_for_account(httpx_mock: HTTPXMock, signer_account: str) -> No
                         }
                     }
                 ),
-                signer_account: envelope(
+                signer_account: batch_entry(
                     component_value({str(TARI_TOKEN): SIGNER_VAULT_ID, str(RESOURCE): VAULT_ID})
                 ),
-                SIGNER_VAULT_ID: envelope(fungible_vault_value(str(TARI_TOKEN), 10_000)),
+                SIGNER_VAULT_ID: batch_entry(fungible_vault_value(str(TARI_TOKEN), 10_000)),
             }
         },
         is_reusable=True,

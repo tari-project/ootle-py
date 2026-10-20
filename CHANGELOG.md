@@ -5,6 +5,24 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [Unreleased]
+
+### Changed
+
+- **Vendored `ootle-wasm` bumped to 0.47.0**, tracking the upstream
+  [`tari-ootle` v0.47.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.47.0)
+  release. The blob's exports are unchanged, but it declares three new
+  wasm-bindgen host imports (a `u64 → BigInt` cast, `bigint_get_as_i64` and
+  `jsval_eq`), which the bridge now provides. The 0.46 bridge refuses to load
+  the new blob.
+
+### Fixed
+
+- **`get_substate()` reads the 0.47 indexer response.** `GET /substates/{id}`
+  now returns `state: {up: {substate}}` in place of `substate`, so every
+  single-substate fetch failed to parse. A `down` answer (spent version) maps
+  to "not found". `POST /substates/fetch` is unchanged.
+
 ## [0.3.1] — 2026-10-13
 
 ### Changed

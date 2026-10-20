@@ -67,6 +67,11 @@ def fungible_vault_value(resource: str, amount: int) -> dict[str, Any]:
 
 def envelope(value: dict[str, Any], *, version: int = 0) -> dict[str, Any]:
     """A ``GET /substates/{id}`` response body wrapping ``value``."""
+    return {"version": version, "state": {"up": {"substate": value}}, "verified": False}
+
+
+def batch_entry(value: dict[str, Any], *, version: int = 0) -> dict[str, Any]:
+    """A ``POST /substates/fetch`` ``substates`` map entry wrapping ``value``."""
     return {"version": version, "substate": value}
 
 
