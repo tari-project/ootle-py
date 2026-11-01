@@ -126,3 +126,52 @@ def test_merge_no_offset_when_dst_empty() -> None:
         if "PutLastInstructionOutputOnWorkspace" in i
     ]
     assert keys == [0]
+
+
+def test_merge_remaps_create_account_bucket_workspace_id() -> None:
+    """A merged ``CreateAccount`` bucket workspace reference is offset."""
+    dst = (
+        TransactionBuilder(Network.LOCAL_NET)
+        .call_method("component_a", "take")
+        .put_last_instruction_output_on_workspace("dst_bucket")
+    )
+    src = (
+        TransactionBuilder(Network.LOCAL_NET)
+        .call_method("component_b", "withdraw")
+        .put_last_instruction_output_on_workspace("transfer_bucket")
+        .create_account(b"\x11" * 32, bucket_workspace_label="transfer_bucket")
+        .create_account(b"\x22" * 32)
+    )
+    dst.merge(src)
+    body = build_body(dst)
+    create_accounts = [i["CreateAccount"] for i in body["instructions"] if "CreateAccount" in i]
+    assert len(create_accounts) == 2
+    assert create_accounts[0]["bucket_workspace_id"] == {"id": 1, "offset": None}
+    assert create_accounts[1]["bucket_workspace_id"] is None
+
+
+def test_merge_remaps_pay_fee_from_bucket() -> None:
+    """``PayFeeFromBucket`` workspace references are offset in ``merge`` and fee builders."""
+    dst = (
+        TransactionBuilder(Network.LOCAL_NET)
+        .call_method("component_a", "take")
+        .put_last_instruction_output_on_workspace("dst_bucket")
+        .with_fee_instructions_builder(
+            lambda f: (
+                f.call_method("component_fee", "take_fee")
+                .put_last_instruction_output_on_workspace("fee_bucket")
+                .pay_fee_from_bucket("fee_bucket")
+            )
+        )
+    )
+    body = build_body(dst)
+    fee_keys = [
+        i["PutLastInstructionOutputOnWorkspace"]["key"]
+        for i in body["fee_instructions"]
+        if "PutLastInstructionOutputOnWorkspace" in i
+    ]
+    assert fee_keys == [1]
+    pay_fee = next(
+        i["PayFeeFromBucket"] for i in body["fee_instructions"] if "PayFeeFromBucket" in i
+    )
+    assert pay_fee["bucket"] == {"id": 1, "offset": None}

@@ -13,9 +13,11 @@ from ootle._types.instructions import (
     CallFunction,
     CallMethod,
     ComponentRefWorkspace,
+    CreateAccount,
     Instruction,
     InstructionArg,
     InstructionArgWorkspace,
+    PayFeeFromBucket,
     PublishTemplate,
     PutLastInstructionOutputOnWorkspace,
     StealthTransferInstruction,
@@ -26,10 +28,13 @@ if TYPE_CHECKING:
     from ootle._transaction_builder import TransactionBuilder
 
 
+def _offset_workspace_id(ws: WorkspaceOffsetId, *, offset: int) -> WorkspaceOffsetId:
+    return WorkspaceOffsetId(id=ws.id + offset, offset=ws.offset)
+
+
 def _remap_arg(arg: InstructionArg, *, offset: int) -> InstructionArg:
     if isinstance(arg, InstructionArgWorkspace):
-        ws = arg.workspace
-        return InstructionArgWorkspace(WorkspaceOffsetId(id=ws.id + offset, offset=ws.offset))
+        return InstructionArgWorkspace(_offset_workspace_id(arg.workspace, offset=offset))
     return arg
 
 
@@ -45,24 +50,39 @@ def _remap_workspace_refs(instr: Instruction, *, offset: int) -> Instruction:
     """Offset every workspace id an instruction carries (assumes ``offset != 0``)."""
     if isinstance(instr, PutLastInstructionOutputOnWorkspace):
         return PutLastInstructionOutputOnWorkspace(key=instr.key + offset)
-    if isinstance(instr, CallMethod):
-        call = instr.call
-        if isinstance(call, ComponentRefWorkspace):
-            call = ComponentRefWorkspace(workspace_id=call.workspace_id + offset)
-        return CallMethod(
-            call=call,
-            method=instr.method,
-            args=tuple(_remap_arg(a, offset=offset) for a in instr.args),
-        )
+    if isinstance(instr, PayFeeFromBucket):
+        return PayFeeFromBucket(bucket=_offset_workspace_id(instr.bucket, offset=offset))
+    if isinstance(instr, CreateAccount):
+        return _remap_create_account(instr, offset=offset)
+    if isinstance(instr, (CallMethod, CallFunction)):
+        return _remap_call(instr, offset=offset)
+    if isinstance(instr, StealthTransferInstruction):
+        return _remap_stealth_transfer(instr, offset=offset)
+    return instr
+
+
+def _remap_create_account(instr: CreateAccount, *, offset: int) -> CreateAccount:
+    bucket = instr.bucket_workspace_id
+    if bucket is None:
+        return instr
+    return CreateAccount(
+        owner_public_key=instr.owner_public_key,
+        bucket_workspace_id=_offset_workspace_id(bucket, offset=offset),
+    )
+
+
+def _remap_call(instr: CallMethod | CallFunction, *, offset: int) -> CallMethod | CallFunction:
+    args = tuple(_remap_arg(a, offset=offset) for a in instr.args)
     if isinstance(instr, CallFunction):
         return CallFunction(
             template_address=instr.template_address,
             function=instr.function,
-            args=tuple(_remap_arg(a, offset=offset) for a in instr.args),
+            args=args,
         )
-    if isinstance(instr, StealthTransferInstruction):
-        return _remap_stealth_transfer(instr, offset=offset)
-    return instr
+    call = instr.call
+    if isinstance(call, ComponentRefWorkspace):
+        call = ComponentRefWorkspace(workspace_id=call.workspace_id + offset)
+    return CallMethod(call=call, method=instr.method, args=args)
 
 
 def _remap_stealth_transfer(
@@ -74,7 +94,7 @@ def _remap_stealth_transfer(
     return StealthTransferInstruction(
         resource=instr.resource,
         statement=instr.statement,
-        revealed_input_bucket=WorkspaceOffsetId(id=bucket.id + offset, offset=bucket.offset),
+        revealed_input_bucket=_offset_workspace_id(bucket, offset=offset),
     )
 
 
@@ -117,7 +137,7 @@ def merge_into(dst: TransactionBuilder, src: TransactionBuilder) -> None:
 
 
 def merge_fee_builder(dst: TransactionBuilder, inner: TransactionBuilder) -> None:
-    """Merge *inner*'s body into *dst*'s fee block, remapping workspace ids.
+    """Merge *inner*'s body and fee blocks into *dst*'s fee block, remapping workspace ids.
 
     The inner builder allocates workspace ids from 0; *dst* may already use
     some, so every workspace id carried in the appended instructions (and the
@@ -126,14 +146,14 @@ def merge_fee_builder(dst: TransactionBuilder, inner: TransactionBuilder) -> Non
     references stay valid.
     """
     dst_ws, dst_body, dst_fee = dst._workspace_ids, dst._body, dst._fee  # pyright: ignore[reportPrivateUsage]  # internal access
-    inner_ws, inner_body = inner._workspace_ids, inner._body  # pyright: ignore[reportPrivateUsage]  # internal access
+    inner_ws, inner_body, inner_fee = inner._workspace_ids, inner._body, inner._fee  # pyright: ignore[reportPrivateUsage]  # internal access
     offset, blob_offset = len(dst_ws), len(dst_body.blobs)
     _merge_workspace_ids(dst_ws, inner_ws, offset=offset)
     dst_fee.instructions.extend(
         _remap_instruction(i, offset=offset, blob_offset=blob_offset)
-        for i in inner_body.instructions
+        for i in (*inner_body.instructions, *inner_fee.instructions)
     )
-    for req in inner_body.inputs:
+    for req in (*inner_body.inputs, *inner_fee.inputs):
         dst_fee.add_input(req)
     for blob in inner_body.blobs:
         dst_body.add_blob(blob)

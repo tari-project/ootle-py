@@ -67,3 +67,21 @@ def test_get_transaction_receipt_404_returns_none(httpx_mock: HTTPXMock) -> None
     with IndexerTransport("http://idx") as transport:
         receipt = transport.get_transaction_receipt(TransactionId("aabb"))
     assert receipt is None
+
+
+def test_get_transaction_result_and_receipt_escape_tx_id(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(
+        url="http://idx/transactions/aa%2F..%3Fx%3D1/result",
+        json={"result": "Pending"},
+    )
+    httpx_mock.add_response(
+        url="http://idx/transaction-receipts/aa%2F..%3Fx%3D1",
+        status_code=404,
+    )
+    raw_id = TransactionId("aa/..?x=1")
+    with IndexerTransport("http://idx") as transport:
+        is_finalized, outcome = transport.get_transaction_result(raw_id)
+        receipt = transport.get_transaction_receipt(raw_id)
+    assert is_finalized is False
+    assert outcome is None
+    assert receipt is None

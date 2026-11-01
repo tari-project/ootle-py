@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import quote
 
 from ootle._types._indexer_json import (
     parse_submit_response,
@@ -56,7 +57,7 @@ def get_transaction_result(
 
     Returns ``(False, None)`` for the ``Pending`` variant.
     """
-    resp = _get(transport, f"transactions/{tx_id}/result")
+    resp = _get(transport, f"transactions/{quote(tx_id, safe='')}/result")
     return parse_json_object(resp, parse_transaction_result)
 
 
@@ -69,7 +70,7 @@ def get_transaction_receipt(
     bare tx id hex is the same key the indexer accepts.
     """
     resp = transport._request(  # pyright: ignore[reportPrivateUsage]  # internal access
-        "GET", f"transaction-receipts/{tx_id}", allow_404=True
+        "GET", f"transaction-receipts/{quote(tx_id, safe='')}", allow_404=True
     )
     if resp is None:
         return None
