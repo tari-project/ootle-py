@@ -42,7 +42,7 @@ def _stealth_input_spec(commitment: bytes) -> StealthTransferSpec:
         ),
     )
     state = StealthTransferState(resource=RESOURCE)
-    state.inputs_to_spend[recipient_address()] = StealthInput(commitment=commitment)
+    state.inputs_to_spend[recipient_address()] = [StealthInput(commitment=commitment)]
     return StealthTransferSpec(
         unsigned=UnsignedTransaction(json='{"instructions": []}'),
         statement=statement,
