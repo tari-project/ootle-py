@@ -42,6 +42,11 @@ class EnvelopeMixin:
         return self
 
     @property
+    def min_epoch(self) -> int | None:
+        """The configured ``min_epoch``, or ``None`` while still unset."""
+        return self._body.min_epoch
+
+    @property
     def max_epoch(self) -> int | None:
         """The configured ``max_epoch``, or ``None`` while still unset."""
         return self._body.max_epoch
