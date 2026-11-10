@@ -1,4 +1,4 @@
-upstream: 0.50.1
-sha256:   42c55801376840c500efebd669b1252c0a3354e35075b1c4b7445c3c9704c0be
-fetched:  2026-11-07
-source:   https://www.npmjs.com/package/@tari-project/ootle-wasm/v/0.50.1
+upstream: 0.53.0
+sha256:   7e57d4bde2d899fde38fddbdf2abeccd089b4a4ffd42adcc5d6dca63f1fb193e
+fetched:  2026-11-10
+source:   https://www.npmjs.com/package/@tari-project/ootle-wasm/v/0.53.0
