@@ -5,6 +5,19 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [0.6.0] — 2026-11-10
+
+Tracks the upstream
+[`tari-ootle` v0.53.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.53.0)
+release, with the v0.51.0 and v0.52.0 changes. Upstream requires SDKs to
+upgrade with the network.
+
+### Changed
+
+- **Vendored `ootle-wasm` and `ootle-wasm-bor` bumped to 0.53.0.** The
+  decoder reads `Type::WellKnown` in template definitions built with
+  `tari_template_lib` 0.40.
+
 ## [0.5.0] — 2026-11-07
 
 Tracks the upstream
