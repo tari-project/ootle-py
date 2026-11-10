@@ -80,7 +80,7 @@ class PendingTransaction:
                 if tag == _COMMIT_TAG:
                     return TransactionOutcome.commit()
                 if tag is not None:
-                    return self._resolve_via_rest()
+                    return self._poll_until_finalized(max(deadline - time.monotonic(), 0.0))
                 # Watcher stopped, an event without a usable tag, or the deadline: poll below.
                 if future.done() or time.monotonic() >= deadline:
                     break
@@ -113,10 +113,11 @@ class PendingTransaction:
             receipt = self._transport.get_transaction_receipt(self.tx_id)
             if receipt is not None:
                 return receipt
-            if time.monotonic() >= deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
                 msg = f"transaction receipt for {self.tx_id} not found"
                 raise IndexerClientError(msg, status=404, body="", url=self._transport.url)
-            time.sleep(_RECEIPT_POLL_INTERVAL)
+            time.sleep(min(_RECEIPT_POLL_INTERVAL, remaining))
 
     def _await_sse(self, future: Future[str | None], timeout: float) -> str | None:
         try:
@@ -129,23 +130,17 @@ class PendingTransaction:
             logger.warning("transaction %s: SSE watcher stopped, polling result", self.tx_id)
             return None
 
-    def _resolve_via_rest(self) -> TransactionOutcome:
-        is_finalized, outcome = self._transport.get_transaction_result(self.tx_id)
-        if not is_finalized or outcome is None:
-            msg = f"transaction {self.tx_id} did not finalise within {self._timeout}s"
-            raise TransactionTimeoutError(msg, tx_id=self.tx_id)
-        return self._classify(outcome)
-
     def _poll_until_finalized(self, timeout: float) -> TransactionOutcome:
         deadline = time.monotonic() + timeout
         while True:
             is_finalized, outcome = self._transport.get_transaction_result(self.tx_id)
             if is_finalized and outcome is not None:
                 return self._classify(outcome)
-            if time.monotonic() >= deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
                 msg = f"transaction {self.tx_id} did not finalise within {self._timeout}s"
                 raise TransactionTimeoutError(msg, tx_id=self.tx_id)
-            time.sleep(_REST_POLL_INTERVAL)
+            time.sleep(min(_REST_POLL_INTERVAL, remaining))
 
     def _classify(self, outcome: TransactionOutcome) -> TransactionOutcome:
         if outcome.is_reject:

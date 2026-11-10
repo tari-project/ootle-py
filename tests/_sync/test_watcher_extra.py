@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from typing import TYPE_CHECKING, cast
 
 import httpx
@@ -166,6 +167,43 @@ def test_start_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
     thread = watcher._thread  # pyright: ignore[reportPrivateUsage]  # internal access
     watcher.start()
     assert watcher._thread is thread  # pyright: ignore[reportPrivateUsage]  # internal access
+    watcher.close()
+    transport.close()
+
+
+def test_concurrent_start_waits_for_connected(monkeypatch: pytest.MonkeyPatch) -> None:
+    transport, watcher = _watcher()
+    entered = threading.Event()
+    release = threading.Event()
+    second_done = threading.Event()
+
+    class _SlowSource:
+        def __enter__(self) -> object:
+            entered.set()
+            release.wait(timeout=2.0)
+            return fake_connect_sse([], keep_open=True).__enter__()
+
+        def __exit__(self, *_a: object) -> None:
+            return None
+
+    def _slow_open(*_a: object, **_k: object) -> object:
+        return _SlowSource()
+
+    def _run_second() -> None:
+        watcher.start()
+        second_done.set()
+
+    monkeypatch.setattr(actor_mod, "_open_sse_stream", _slow_open)
+    t1 = threading.Thread(target=watcher.start, daemon=True)
+    t1.start()
+    assert entered.wait(timeout=2.0)
+    t2 = threading.Thread(target=_run_second, daemon=True)
+    t2.start()
+    assert not second_done.wait(timeout=0.02)
+    release.set()
+    t1.join(timeout=2.0)
+    t2.join(timeout=2.0)
+    assert second_done.is_set()
     watcher.close()
     transport.close()
 

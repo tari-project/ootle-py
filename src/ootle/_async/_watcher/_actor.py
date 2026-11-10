@@ -70,12 +70,11 @@ class AsyncTransactionWatcher:
         Idempotent. Raises whatever the first subscription attempt raised
         if it failed — the caller is expected to fall back to REST polling.
         """
-        if self._task is not None:
-            return
-        self._connected = asyncio.Event()
-        self._connect_error = None
-        self._running = True
-        self._task = asyncio.create_task(self._run(), name="ootle-tx-watcher")
+        if self._task is None or self._task.done():
+            self._connected = asyncio.Event()
+            self._connect_error = None
+            self._running = True
+            self._task = asyncio.create_task(self._run(), name="ootle-tx-watcher")
         await self._connected.wait()
         if self._connect_error is not None:
             error = self._connect_error

@@ -108,3 +108,17 @@ def test_fold_authorizations_accumulates_across_multiple_auths() -> None:
     )
     folded = json.loads(_fold_authorizations(tx, auths))
     assert folded["signatures"] == [sig1, sig2]
+
+
+def test_fold_authorizations_unwraps_already_wrapped_body_and_deduplicates() -> None:
+    """Folding over an already-wrapped UnsealedTransactionV1 keeps the inner body
+    and deduplicates signatures by public_key."""
+    body = {"id": "tx-inner"}
+    sig_a = {"public_key": "PK_A", "signature": "SIG_A"}
+    sig_b = {"public_key": "PK_B", "signature": "SIG_B"}
+    wrapped_tx = UnsignedTransaction(json=json.dumps({"transaction": body, "signatures": [sig_a]}))
+    auth_dup = TransactionAuthorization(
+        json=json.dumps({"transaction": body, "signatures": [sig_a, sig_b]})
+    )
+    folded = json.loads(_fold_authorizations(wrapped_tx, (auth_dup,)))
+    assert folded == {"transaction": body, "signatures": [sig_a, sig_b]}

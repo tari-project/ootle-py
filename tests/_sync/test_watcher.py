@@ -101,6 +101,20 @@ def test_watch_fee_intent_resolves_via_rest_reject(httpx_mock: HTTPXMock) -> Non
     assert exc.value.reject_reason == ExecutionFailure(message="exec failed")
 
 
+def test_watch_fee_intent_polls_when_rest_initially_pending(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(pending_mod, "_REST_POLL_INTERVAL", 0.001)
+    transport = IndexerTransport("http://idx")
+    httpx_mock.add_response(url=_result_url(transport), json={"result": "Pending"})
+    httpx_mock.add_response(url=_result_url(transport), json=_FINALIZED_REJECT)
+    with pytest.raises(TransactionRejectedError) as exc:
+        _pending(transport, _StubWatcher(tag="FeeIntentCommit"), timeout=1.0).watch()
+    transport.close()
+    assert exc.value.tx_id == _TX
+    assert exc.value.reject_reason == ExecutionFailure(message="exec failed")
+
+
 def test_watch_timeout_then_rest_pending(httpx_mock: HTTPXMock) -> None:
     transport = IndexerTransport("http://idx")
     httpx_mock.add_response(url=_result_url(transport), json={"result": "Pending"})

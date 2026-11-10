@@ -171,6 +171,35 @@ async def test_start_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
     await transport.aclose()
 
 
+async def test_concurrent_start_waits_for_connected(monkeypatch: pytest.MonkeyPatch) -> None:
+    transport, watcher = await _watcher()
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    class _SlowSource:
+        async def __aenter__(self) -> object:
+            entered.set()
+            await release.wait()
+            return await fake_aconnect_sse([], keep_open=True).__aenter__()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    def _slow_open(*_a: object, **_k: object) -> object:
+        return _SlowSource()
+
+    monkeypatch.setattr(actor_mod, "_open_sse_stream", _slow_open)
+    t1 = asyncio.create_task(watcher.start())
+    await entered.wait()
+    t2 = asyncio.create_task(watcher.start())
+    await asyncio.sleep(0)
+    assert not t2.done()
+    release.set()
+    await asyncio.gather(t1, t2)
+    await watcher.aclose()
+    await transport.aclose()
+
+
 async def test_transport_watcher_is_lazy_and_cached(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(actor_mod, "_open_sse_stream", _serving())
     transport = AsyncIndexerTransport("http://idx")

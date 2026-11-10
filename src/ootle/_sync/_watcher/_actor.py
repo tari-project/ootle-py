@@ -72,15 +72,16 @@ class TransactionWatcher:
         Idempotent. Raises whatever the first subscription attempt raised
         if it failed — the caller is expected to fall back to REST polling.
         """
-        if self._thread is not None:
-            return
-        self._connected = threading.Event()
-        self._connect_error = None
-        self._running = True
-        thread = threading.Thread(target=self._run, name="ootle-tx-watcher", daemon=True)
-        self._thread = thread
-        thread.start()
-        self._connected.wait()
+        with self._lock:
+            if self._thread is None or not self._thread.is_alive():
+                self._connected = threading.Event()
+                self._connect_error = None
+                self._running = True
+                thread = threading.Thread(target=self._run, name="ootle-tx-watcher", daemon=True)
+                self._thread = thread
+                thread.start()
+            connected = self._connected
+        connected.wait()
         if self._connect_error is not None:
             error = self._connect_error
             self.close()
