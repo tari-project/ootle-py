@@ -31,6 +31,11 @@ class EnvelopeMixin:
         self._body.min_epoch = epoch
         return self
 
+    @property
+    def min_epoch(self) -> int | None:
+        """The configured ``min_epoch``, or ``None`` while still unset."""
+        return self._body.min_epoch
+
     def with_max_epoch(self, epoch: int) -> Self:
         """Set the last epoch the transaction may be sequenced in.
 

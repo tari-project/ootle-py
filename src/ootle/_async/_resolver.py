@@ -112,9 +112,10 @@ class AsyncTransactionInputResolver:
         cache: dict[SubstateId, Substate],
         missing: set[SubstateId],
     ) -> None:
-        logger.debug("resolver fetching %d substate(s)", len(ids))
-        fetched = await self._transport.fetch_substates(ids)
+        unique_ids = list(dict.fromkeys(ids))
+        logger.debug("resolver fetching %d substate(s)", len(unique_ids))
+        fetched = await self._transport.fetch_substates(unique_ids)
         cache.update(fetched)
-        for sub_id in ids:
+        for sub_id in unique_ids:
             if sub_id not in cache:
                 missing.add(sub_id)

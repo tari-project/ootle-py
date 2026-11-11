@@ -100,7 +100,7 @@ def resolve_vault(
         return True
     vault_ids = extract_vault_ids(cached)
     have_all_vaults = True
-    matched = False
+    staged: list[SubstateRequirement] = []
     for vault_id in vault_ids:
         vault_cached = cache.get(vault_id)
         if vault_cached is None:
@@ -112,15 +112,15 @@ def resolve_vault(
         if isinstance(vault_cached.value, VaultSubstateValue) and str(
             vault_cached.value.resource_address
         ) == str(resource):
-            new_inputs.append(SubstateRequirement(id=vault_id, version=None))
+            staged.append(SubstateRequirement(id=vault_id, version=None))
             # Deposits and withdrawals only read the resource (upstream ``WantInput``).
             if str(resource) != TARI_TOKEN:
-                new_inputs.append(SubstateRequirement(SubstateId(str(resource)), is_write=False))
-            matched = True
-    if matched:
-        return True
+                staged.append(SubstateRequirement(SubstateId(str(resource)), is_write=False))
     if not have_all_vaults:
         return False
+    if staged:
+        new_inputs.extend(staged)
+        return True
     if required:
         msg = f"required vault for resource {resource} on component {component} not found"
         raise IndexerClientError(msg, status=None, body="", url="")
@@ -147,6 +147,7 @@ def resolve_all_vaults(
         return True
     vault_ids = extract_vault_ids(cached)
     all_cached = True
+    staged: list[SubstateRequirement] = []
     for vault_id in vault_ids:
         vault_cached = cache.get(vault_id)
         if vault_cached is None:
@@ -157,10 +158,12 @@ def resolve_all_vaults(
             to_fetch.append(vault_id)
             continue
         if isinstance(vault_cached.value, VaultSubstateValue):
-            new_inputs.append(SubstateRequirement(id=vault_id, version=None))
+            staged.append(SubstateRequirement(id=vault_id, version=None))
             res = str(vault_cached.value.resource_address)
             if res != TARI_TOKEN:
-                new_inputs.append(SubstateRequirement(id=SubstateId(opaque=res), version=None))
+                staged.append(SubstateRequirement(id=SubstateId(opaque=res), version=None))
+    if all_cached:
+        new_inputs.extend(staged)
     return all_cached
 
 

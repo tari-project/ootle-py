@@ -25,3 +25,11 @@ def test_ensure_max_epoch_leaves_an_explicit_bound_alone(httpx_mock: HTTPXMock) 
     with OotleClient.connect("http://idx") as client:
         ensure_max_epoch(client, builder)
     assert builder.max_epoch == 3
+
+
+def test_ensure_max_epoch_anchors_at_future_min_epoch(httpx_mock: HTTPXMock) -> None:
+    mock_network(httpx_mock, epoch=7)
+    builder = TransactionBuilder(0).with_min_epoch(20)
+    with OotleClient.connect("http://idx") as client:
+        ensure_max_epoch(client, builder)
+    assert builder.max_epoch == 20 + DEFAULT_MAX_EPOCH_WINDOW

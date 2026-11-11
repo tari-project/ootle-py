@@ -94,3 +94,40 @@ def test_get_account_balances_missing_account_returns_empty(httpx_mock: HTTPXMoc
     with OotleClient.connect("http://idx") as client:
         balances = client.get_account_balances(ACCOUNT)
     assert balances == {}
+
+
+def test_get_account_balances_sums_multiple_vaults_for_same_resource(
+    httpx_mock: HTTPXMock,
+) -> None:
+    vault_tari_2 = "vault_" + ("cc" * 32)
+    mock_network(httpx_mock)
+    httpx_mock.add_response(
+        url=f"http://idx/substates/{ACCOUNT}",
+        json=envelope(
+            component_value(
+                {
+                    "primary": VAULT_TARI,
+                    "secondary": vault_tari_2,
+                    RESOURCE_USDT: VAULT_USDT,
+                }
+            )
+        ),
+    )
+    httpx_mock.add_response(
+        url="http://idx/substates/fetch",
+        method="POST",
+        json={
+            "substates": {
+                VAULT_TARI: batch_entry(fungible_vault_value(RESOURCE_TARI, 100)),
+                vault_tari_2: batch_entry(fungible_vault_value(RESOURCE_TARI, 40)),
+                VAULT_USDT: batch_entry(fungible_vault_value(RESOURCE_USDT, 25)),
+            }
+        },
+    )
+
+    with OotleClient.connect("http://idx") as client:
+        balances = client.get_account_balances(ACCOUNT)
+    assert balances == {
+        ResourceAddress(RESOURCE_TARI): Amount(140),
+        ResourceAddress(RESOURCE_USDT): Amount(25),
+    }

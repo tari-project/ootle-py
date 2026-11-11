@@ -95,6 +95,29 @@ def test_resolve_all_vaults_non_component_value_returns_done() -> None:
     assert resolve_all_vaults("comp", cache, missing, [], []) is True
 
 
+def test_resolve_vault_and_all_vaults_wait_until_all_component_vaults_cached() -> None:
+    vault_2 = "vault_" + ("cc" * 32)
+    cache: dict[SubstateId, Substate] = {
+        SubstateId("comp"): component_substate("comp", {"v1": _VAULT, "v2": vault_2}),
+        SubstateId(_VAULT): vault_substate(_VAULT, TARI_TOKEN),
+    }
+    new_inputs: list[SubstateRequirement] = []
+    to_fetch: list[SubstateId] = []
+
+    assert resolve_vault("comp", TARI_TOKEN, True, cache, set(), new_inputs, to_fetch) is False
+    assert new_inputs == []
+    assert to_fetch == [SubstateId(vault_2)]
+
+    to_fetch.clear()
+    assert resolve_all_vaults("comp", cache, set(), new_inputs, to_fetch) is False
+    assert new_inputs == []
+    assert to_fetch == [SubstateId(vault_2)]
+
+    cache[SubstateId(vault_2)] = vault_substate(vault_2, TARI_TOKEN)
+    assert resolve_vault("comp", TARI_TOKEN, True, cache, set(), new_inputs, []) is True
+    assert [req.id.opaque for req in new_inputs] == [_VAULT, vault_2]
+
+
 def test_extract_vault_ids_non_component_value_returns_empty() -> None:
     component = Substate(
         id=SubstateId("comp"), version=1, value=ResourceSubstateValue(total_supply=Amount(0))
