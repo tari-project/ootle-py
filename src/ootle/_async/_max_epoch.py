@@ -22,4 +22,5 @@ async def ensure_max_epoch(client: AsyncOotleClient, builder: TransactionBuilder
     if builder.max_epoch is not None:
         return
     epoch = await client.get_epoch()
-    builder.with_max_epoch(epoch + DEFAULT_MAX_EPOCH_WINDOW)
+    base = max(epoch, builder.min_epoch or 0)
+    builder.with_max_epoch(base + DEFAULT_MAX_EPOCH_WINDOW)

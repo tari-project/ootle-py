@@ -160,7 +160,9 @@ def resolve_all_vaults(
             new_inputs.append(SubstateRequirement(id=vault_id, version=None))
             res = str(vault_cached.value.resource_address)
             if res != TARI_TOKEN:
-                new_inputs.append(SubstateRequirement(id=SubstateId(opaque=res), version=None))
+                new_inputs.append(
+                    SubstateRequirement(id=SubstateId(opaque=res), version=None, is_write=False)
+                )
     return all_cached
 
 
