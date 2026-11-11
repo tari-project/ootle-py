@@ -8,7 +8,8 @@ from pytest_httpx import HTTPXMock
 from ootle import AsyncOotleClient
 from ootle._async.stealth.transfer import AsyncStealthTransfer
 from ootle._crypto._stealth_provider import StealthOutputsStatementResult
-from ootle._types.stealth import Mask, RevealedOutput, StealthOutputsStatement
+from ootle._types.address import ResourceAddress
+from ootle._types.stealth import Mask, Output, RevealedOutput, StealthOutputsStatement
 from ootle.errors import InvalidArgumentError
 from tests._async._helpers import mock_network
 from tests._async.stealth._builder_helpers import (
@@ -16,6 +17,7 @@ from tests._async.stealth._builder_helpers import (
     RESOURCE,
     make_client,
     make_wallet,
+    recipient_address,
 )
 from tests._helpers.stealth import REVEALED_RECEIVER
 
@@ -83,3 +85,29 @@ def test_result_helper_constructs_stealth_outputs_result() -> None:
     )
     assert res.statement.revealed_output_amount == 1
     assert res.output_mask.raw == b"\x00" * 32
+
+
+async def test_prepare_rejects_unbalanced_revealed_only(httpx_mock: HTTPXMock) -> None:
+    client = await make_client(httpx_mock)
+    b = (
+        AsyncStealthTransfer(client, RESOURCE)
+        .spend_revealed_input(COMPONENT, 100)
+        .to_revealed_output(50)
+    )
+    with pytest.raises(InvalidArgumentError, match="unbalanced"):
+        await b.prepare()
+    await client.aclose()
+
+
+async def test_prepare_rejects_mismatched_output_resource(httpx_mock: HTTPXMock) -> None:
+    client = await make_client(httpx_mock)
+    other_res = ResourceAddress("resource_" + "99" * 32)
+    out = Output(destination=recipient_address(), amount=100, resource_address=other_res)
+    b = (
+        AsyncStealthTransfer(client, RESOURCE)
+        .spend_revealed_input(COMPONENT, 100)
+        .to_stealth_output(out)
+    )
+    with pytest.raises(InvalidArgumentError, match="does not match"):
+        await b.prepare()
+    await client.aclose()

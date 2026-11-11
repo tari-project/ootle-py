@@ -34,13 +34,17 @@ class StealthTransferState:
     """Accumulator mirroring Rust ``StealthTransferSpec``."""
 
     resource: ResourceAddress
-    inputs_to_spend: dict[Address, StealthInput] = field(
-        default_factory=dict["Address", "StealthInput"]
+    inputs_to_spend: dict[Address, list[StealthInput]] = field(
+        default_factory=dict["Address", "list[StealthInput]"]
     )
     revealed_input_amount: int = 0
     outputs: list[Output] = field(default_factory=list["Output"])
     revealed_output_amount: int = 0
     fee_from_revealed: bool = False
+
+    def stealth_inputs(self) -> tuple[StealthInput, ...]:
+        """Flattened stealth inputs in insertion order across all owners."""
+        return tuple(sin for owner_inputs in self.inputs_to_spend.values() for sin in owner_inputs)
 
     def total_output_amount(self) -> int:
         """Sum of stealth output amounts plus the revealed output bucket."""
@@ -130,7 +134,8 @@ def emit_revealed_output_deposit(
 
 def validate_state(state: StealthTransferState) -> None:
     """Pre-flight invariants enforced before the stealth crypto round-trip."""
-    has_input = state.revealed_input_amount > 0 or bool(state.inputs_to_spend)
+    has_stealth_inputs = any(state.inputs_to_spend.values())
+    has_input = state.revealed_input_amount > 0 or has_stealth_inputs
     has_output = state.revealed_output_amount > 0 or bool(state.outputs)
     if not has_input:
         msg = "stealth transfer requires at least one input (stealth or revealed)"
@@ -138,6 +143,21 @@ def validate_state(state: StealthTransferState) -> None:
     if not has_output:
         msg = "stealth transfer requires at least one output (stealth or revealed)"
         raise InvalidArgumentError(msg)
+    for out in state.outputs:
+        if out.resource_address != state.resource:
+            msg = (
+                f"stealth output resource {out.resource_address} does not match "
+                f"transfer resource {state.resource}"
+            )
+            raise InvalidArgumentError(msg)
+    if not has_stealth_inputs:
+        total_out = state.total_output_amount()
+        if state.revealed_input_amount != total_out:
+            msg = (
+                f"unbalanced stealth transfer: revealed input {state.revealed_input_amount} != "
+                f"total output {total_out}"
+            )
+            raise InvalidArgumentError(msg)
 
 
 def collect_input_signers(
@@ -148,4 +168,8 @@ def collect_input_signers(
     Mirrors the Rust iteration order in ``builder.rs::prepare`` — the
     ``IndexMap`` preserves insertion order, and so do Python ``dict``s.
     """
-    return tuple((addr, inp.commitment) for addr, inp in state.inputs_to_spend.items())
+    return tuple(
+        (addr, inp.commitment)
+        for addr, owner_inputs in state.inputs_to_spend.items()
+        for inp in owner_inputs
+    )
