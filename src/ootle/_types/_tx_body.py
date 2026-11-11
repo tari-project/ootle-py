@@ -127,6 +127,11 @@ class UnsignedTransactionV1Body:
                 "(e.g. await client.get_epoch() + 10)"
             )
             raise InvalidArgumentError(msg)
+        if self.min_epoch is not None and self.min_epoch > self.max_epoch:
+            from ootle.errors import InvalidArgumentError  # noqa: PLC0415
+
+            msg = f"min_epoch ({self.min_epoch}) must not exceed max_epoch ({self.max_epoch})"
+            raise InvalidArgumentError(msg)
         return {
             "network": self.network,
             "fee_instructions": [i.to_json() for i in self.fee_instructions],

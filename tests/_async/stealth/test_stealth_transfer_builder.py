@@ -70,6 +70,8 @@ async def test_negative_amounts_rejected(httpx_mock: HTTPXMock) -> None:
         b.spend_revealed_input(COMPONENT, 0)
     with pytest.raises(InvalidArgumentError):
         b.to_revealed_output(-1)
+    with pytest.raises(InvalidArgumentError):
+        b.pay_fee_from_stealth(COMPONENT, 0)
     await client.aclose()
 
 
@@ -122,10 +124,17 @@ async def test_want_list_contains_stealth_commitment(httpx_mock: HTTPXMock) -> N
         AsyncStealthTransfer(client, RESOURCE)
         .spend_stealth_input(addr, COMMITMENT)
         .to_revealed_output(1)
+        .pay_fee_from_stealth(COMPONENT, 25)
     )
     matches = [w for w in b._want_list if isinstance(w, WantInput.StealthCommitment)]  # pyright: ignore[reportPrivateUsage]  # internal access
     assert len(matches) == 1
     assert matches[0].commitment == COMMITMENT
     assert matches[0].resource == RESOURCE
-    _ = TARI_TOKEN  # touch the constant
+    vault_wants = [
+        w
+        for w in b._want_list  # pyright: ignore[reportPrivateUsage]  # internal access
+        if isinstance(w, WantInput.VaultForResource) and w.component == COMPONENT
+    ]
+    assert len(vault_wants) == 1
+    assert str(vault_wants[0].resource) == TARI_TOKEN
     await client.aclose()

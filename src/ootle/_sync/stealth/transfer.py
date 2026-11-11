@@ -173,8 +173,14 @@ class StealthTransfer:
 
     def pay_fee_from_stealth(self, component: ComponentAddress, amount: Amount | int) -> Self:
         """Pay fees from a stealth account's revealed bucket."""
+        positive = ensure_positive(int(amount), label="pay_fee_from_stealth amount")
+        self._want_list.add(
+            WantInput.VaultForResource(
+                component=component, resource=ResourceAddress(TARI_TOKEN), required=True
+            )
+        )
         self._want_list.add(WantInput.SpecificSubstate(id=SubstateId(opaque=str(component))))
-        self._builder.pay_fee_from_component(component, amount)
+        self._builder.pay_fee_from_component(component, positive)
         return self
 
     def with_builder(self, fn: Callable[[TransactionBuilder], TransactionBuilder]) -> Self:

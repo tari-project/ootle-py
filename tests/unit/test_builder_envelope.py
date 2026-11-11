@@ -30,3 +30,10 @@ def test_nonce_defaults_to_zero_and_is_settable() -> None:
 def test_min_epoch_round_trips() -> None:
     body = build_body(TransactionBuilder(0).with_min_epoch(3))
     assert body["min_epoch"] == 3
+
+
+def test_min_epoch_exceeding_max_epoch_raises() -> None:
+    builder = TransactionBuilder(0).with_min_epoch(20).with_max_epoch(10)
+    with pytest.raises(InvalidArgumentError, match=r"min_epoch \(20\) must not exceed max_epoch \(10\)"):
+        builder.build_unsigned()
+

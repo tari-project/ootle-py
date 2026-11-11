@@ -79,6 +79,33 @@ async def test_decrypt_owned_utxo_returns_none_for_non_utxo(httpx_mock: HTTPXMoc
     await client.aclose()
 
 
+async def test_decrypt_owned_utxo_returns_none_for_frozen_or_malformed_id(
+    httpx_mock: HTTPXMock, stealth_unblind_vector: dict[str, Any]
+) -> None:
+    vec = stealth_unblind_vector
+    client = await make_client(httpx_mock, crypto=WasmCryptoProvider.load_default())
+    valid = _engine_utxo_substate(
+        vec["commitment"], vec["sender_public_nonce"], vec["encrypted_data"]
+    )
+    raw_utxo = valid.value.raw["Utxo"]  # type: ignore[union-attr, index]
+    frozen = Substate(
+        id=valid.id,
+        version=0,
+        value=UnknownSubstateValue(
+            discriminator="Utxo", raw={"Utxo": {**raw_utxo, "is_frozen": True}}
+        ),
+    )
+    assert await client.decrypt_owned_utxo(bytes.fromhex(vec["view_secret"]), frozen) is None
+
+    short_commit = Substate(
+        id=SubstateId(opaque="utxo_resource_deadbeef"),
+        version=0,
+        value=valid.value,
+    )
+    assert await client.decrypt_owned_utxo(bytes.fromhex(vec["view_secret"]), short_commit) is None
+    await client.aclose()
+
+
 async def test_read_helpers_reject_non_stealth_crypto(httpx_mock: HTTPXMock) -> None:
     client = await make_client(httpx_mock, crypto=object())
     utxo = _engine_utxo_substate("dd" * 32)
