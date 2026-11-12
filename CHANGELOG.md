@@ -5,6 +5,20 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [Unreleased]
+
+Tracks the upstream
+[`tari-ootle` v0.53.3](https://github.com/tari-project/tari-ootle/releases/tag/v0.53.3)
+release, with the v0.53.1 and v0.53.2 changes.
+
+### Changed
+
+- **Vendored `ootle-wasm` and `ootle-wasm-bor` bumped to 0.53.3.** The 0.53.3
+  decoder reads a receipt's `FeeBreakdown` rows in wire order; 0.53.2 rejected
+  them when they were not in ascending order.
+- **Re-estimate fees** for transactions that pass workspace values as
+  arguments: 0.53.2 charges more native execution points for them.
+
 ## [0.6.0] — 2026-11-10
 
 Tracks the upstream
