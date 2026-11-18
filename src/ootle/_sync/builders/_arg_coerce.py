@@ -13,9 +13,9 @@ from ootle._types.instructions import (
     InstructionArgLiteral,
     InstructionArgWorkspace,
     WorkspaceOffsetId,
+    address_literal,
     amount_literal,
     metadata_literal,
-    resource_address_literal,
 )
 from ootle.errors import InvalidArgumentError
 
@@ -61,7 +61,7 @@ def convert_arg(builder: TransactionBuilder, arg: ArgVariant) -> InstructionArg:
             wid: int = builder._resolve_workspace(label)  # pyright: ignore[reportPrivateUsage]  # internal access
             return InstructionArgWorkspace(WorkspaceOffsetId(id=wid))
         case Arg.Address(addr=addr):
-            return resource_address_literal(addr)  # pyright: ignore[reportArgumentType]  # addr union narrowed by match
+            return address_literal(addr)
         case Arg.Metadata(entries=entries):
             return metadata_literal(entries)
         case Arg.Literal(value=v):

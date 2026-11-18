@@ -23,9 +23,12 @@ from ootle._types._instruction_args import (
     InstructionArgLiteral,
     InstructionArgWorkspace,
     WorkspaceOffsetId,
+    address_literal,
     amount_literal,
+    component_address_literal,
     metadata_literal,
     resource_address_literal,
+    template_address_literal,
 )
 from ootle._types._instruction_variants import (
     AuthorizeProof,
@@ -69,7 +72,10 @@ __all__ = [
     "PutLastInstructionOutputOnWorkspace",
     "StealthTransferInstruction",
     "WorkspaceOffsetId",
+    "address_literal",
     "amount_literal",
+    "component_address_literal",
     "metadata_literal",
     "resource_address_literal",
+    "template_address_literal",
 ]

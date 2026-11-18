@@ -14,7 +14,7 @@ from ootle import (
     metadata,
     workspace,
 )
-from ootle._types.address import ComponentAddress, ResourceAddress
+from ootle._types.address import ComponentAddress, ResourceAddress, TemplateAddress
 from ootle._types.network import Network
 from ootle._types.substate import SubstateId
 from ootle._types.want_input import WantInput
@@ -76,11 +76,26 @@ def test_call_method_with_address_arg(httpx_mock: HTTPXMock) -> None:
     mock_network(httpx_mock)
     with OotleClient.connect("http://idx", wallet=_wallet()) as client:
         b = client.component().call_method(
-            _COMP, "with_resource", args=[Arg.Address(ResourceAddress("resource_aa"))]
+            _COMP,
+            "with_addresses",
+            args=[
+                Arg.Address(ComponentAddress("component_aa")),
+                Arg.Address(ResourceAddress("resource_bb")),
+                Arg.Address(TemplateAddress("template_12")),
+            ],
         )
         body = build_body(b._builder)  # pyright: ignore[reportPrivateUsage]  # internal access
-    arg = body["instructions"][0]["CallMethod"]["args"][0]
-    assert "Literal" in arg
+    args = body["instructions"][0]["CallMethod"]["args"]
+    comp_decoded = cbor2.loads(bytes.fromhex(args[0]["Literal"]))
+    res_decoded = cbor2.loads(bytes.fromhex(args[1]["Literal"]))
+    tpl_decoded = cbor2.loads(bytes.fromhex(args[2]["Literal"]))
+    assert isinstance(comp_decoded, cbor2.CBORTag)
+    assert comp_decoded.tag == 128
+    assert comp_decoded.value == b"\xaa"
+    assert isinstance(res_decoded, cbor2.CBORTag)
+    assert res_decoded.tag == 131
+    assert res_decoded.value == b"\xbb"
+    assert tpl_decoded == b"\x12"
 
 
 def test_call_method_with_metadata_arg(httpx_mock: HTTPXMock) -> None:
