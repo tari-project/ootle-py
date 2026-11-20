@@ -7,12 +7,15 @@ import pytest
 
 from ootle._types._bor_value import BinaryTag
 from ootle._types._cbor import (
+    cbor_encode_address,
     cbor_encode_amount,
     cbor_encode_bool,
     cbor_encode_bytes,
+    cbor_encode_component_address,
     cbor_encode_metadata,
     cbor_encode_resource_address,
     cbor_encode_str,
+    cbor_encode_template_address,
 )
 
 _RESOURCE_HEX = "00" * 32
@@ -85,3 +88,35 @@ def test_cbor_encode_resource_address_accepts_prefixed_and_raw_hex(addr: str) ->
     assert isinstance(decoded, cbor2.CBORTag)
     assert decoded.tag == int(BinaryTag.RESOURCE_ADDRESS)
     assert decoded.value == bytes.fromhex(_RESOURCE_HEX)
+
+
+@pytest.mark.parametrize("addr", [f"component_{'aa' * 32}", "aa" * 32])
+def test_cbor_encode_component_address_accepts_prefixed_and_raw_hex(addr: str) -> None:
+    encoded = cbor_encode_component_address(addr)
+    assert encoded.hex() == f"d8805820{'aa' * 32}"
+    decoded = cbor2.loads(encoded)
+    assert isinstance(decoded, cbor2.CBORTag)
+    assert decoded.tag == int(BinaryTag.COMPONENT_ADDRESS)
+    assert decoded.value == b"\xaa" * 32
+
+
+@pytest.mark.parametrize("addr", [f"template_{'12' * 32}", "12" * 32])
+def test_cbor_encode_template_address_encodes_untagged_hash32(addr: str) -> None:
+    encoded = cbor_encode_template_address(addr)
+    assert encoded.hex() == f"5820{'12' * 32}"
+    assert cbor2.loads(encoded) == b"\x12" * 32
+
+
+def test_cbor_encode_address_matches_sdk_golden_vectors() -> None:
+    assert cbor_encode_address(f"component_{'aa' * 32}").hex() == f"d8805820{'aa' * 32}"
+    assert cbor_encode_address(f"resource_{'bb' * 32}").hex() == f"d8835820{'bb' * 32}"
+    assert cbor_encode_address(f"template_{'12' * 32}").hex() == f"5820{'12' * 32}"
+
+
+@pytest.mark.parametrize(
+    "bad_addr",
+    ["00" * 32, "vault_aa", "component_", "resource_", "template_", "component_zz", ""],
+)
+def test_cbor_encode_address_rejects_unrecognized_or_malformed(bad_addr: str) -> None:
+    with pytest.raises(ValueError):
+        cbor_encode_address(bad_addr)
