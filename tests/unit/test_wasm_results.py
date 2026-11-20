@@ -9,7 +9,7 @@ serves bytes out of an in-memory buffer.
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, cast, override
 
 import pytest
 
@@ -74,6 +74,27 @@ def test_take_optional_u64_result_none() -> None:
 
 def test_take_optional_u64_result_value() -> None:
     assert take_optional_u64_result(_dummy_bridge(), (1, 4242, 0, 0), context="x") == 4242
+
+
+def test_take_optional_u64_result_masks_high_bit() -> None:
+    high_bit = (1 << 63) + 123
+    signed = high_bit - (1 << 64)
+    assert take_optional_u64_result(_dummy_bridge(), (1, signed, 0, 0), context="x") == high_bit
+    assert take_optional_u64_result(_dummy_bridge(), (1, -1, 0, 0), context="x") == (1 << 64) - 1
+
+
+def test_read_u64_masks_signed_i64() -> None:
+    high_bit = (1 << 63) + 123
+    signed = high_bit - (1 << 64)
+
+    class _IntBridge(_FakeBridge):
+        @override
+        def _getter(self, _store: object, _ptr: int) -> Any:
+            return signed
+
+    fake = _IntBridge(getter_return=(0, 0))
+    with open_box(cast("Bridge", fake), box_ptr=0, freer=_FREER) as box:
+        assert box.read_u64(_GETTER) == high_bit
 
 
 @pytest.mark.usefixtures("patched_externref")

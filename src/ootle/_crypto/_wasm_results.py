@@ -24,6 +24,8 @@ from ootle.errors import CryptoBridgeError
 
 from ._bridge import Bridge, _abi
 
+_U64_MASK = (1 << 64) - 1
+
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -41,6 +43,10 @@ class _BoxAccessor:
 
     def read_int(self, getter: str) -> int:
         return int(self.bridge.exports[getter](self.bridge.store, self.ptr))
+
+    def read_u64(self, getter: str) -> int:
+        """Read a ``u64`` field (wasmtime returns WASM ``i64`` as signed Python ``int``)."""
+        return int(self.bridge.exports[getter](self.bridge.store, self.ptr)) & _U64_MASK
 
     def read_optional_bytes(self, getter: str) -> bytes | None:
         pl = self.bridge.exports[getter](self.bridge.store, self.ptr)
@@ -92,7 +98,7 @@ def take_optional_u64_result(bridge: Bridge, ret: Any, *, context: str) -> int |
         raise_from_externref(bridge, ret[2], context)
     if ret[0] == 0:
         return None
-    return int(ret[1])
+    return int(ret[1]) & _U64_MASK
 
 
 def take_unit_result(bridge: Bridge, ret: Any, *, context: str) -> None:

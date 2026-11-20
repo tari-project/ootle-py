@@ -68,7 +68,7 @@ class WasmStealthMethodsMixin(WasmStealthOutputsMixin):
             box = take_box_result(b, ret, context="unblind_output")
             with open_box(b, box, "__wbg_decryptedoutputresult_free") as acc:
                 mask = acc.read_bytes("__wbg_get_decryptedoutputresult_mask")
-                value = acc.read_int("__wbg_get_decryptedoutputresult_value")
+                value = acc.read_u64("__wbg_get_decryptedoutputresult_value")
                 memo_json = acc.read_optional_str("__wbg_get_decryptedoutputresult_memo_json")
         # The blob returns the memo as JSON (a serialised ``Memo`` enum); we
         # carry it as UTF-8 bytes. The only production caller passes

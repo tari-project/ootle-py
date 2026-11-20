@@ -13,6 +13,9 @@ from typing import Any
 import pytest
 
 from ootle._crypto._wasm_provider import WasmCryptoProvider
+from ootle._types.address import Address, ResourceAddress
+from ootle._types.network import Network
+from ootle._types.stealth import Output
 from ootle.errors import CryptoBridgeError
 
 
@@ -100,6 +103,27 @@ def test_stealth_dh_secret_is_deterministic(provider: WasmCryptoProvider) -> Non
     assert provider.stealth_dh_secret(16, owner_secret, other_view, public_nonce) != first
     assert len(first) == 32
     assert first == second
+
+
+def test_unblind_output_high_bit_u64_value(provider: WasmCryptoProvider) -> None:
+    """Outputs with value >= 2^63 must round-trip without WASM i64 sign extension."""
+    high_value = (1 << 63) + 123
+    owner_sk, view_sk = provider.generate_ootle_secret_key()
+    owner_pk, view_pk = provider.ootle_public_key_from_secret(owner_sk, view_sk)
+    dest = Address.from_keys(owner_pk, view_pk, Network.LOCAL_NET, crypto=provider)
+    resource = ResourceAddress("resource_" + "01" * 32)
+    stmt = provider.generate_outputs_statement(
+        specs=[Output(destination=dest, amount=high_value, resource_address=resource)],
+        revealed_output=None,
+    ).statement
+    utxo = stmt.outputs[0]
+    result = provider.unblind_output(
+        commitment=utxo.output.commitment,
+        output_body_json=json.dumps(utxo.to_json()),
+        view_secret=view_sk,
+        skip_memo=True,
+    )
+    assert result.value == high_value
 
 
 def test_stealth_dh_secret_rejects_invalid_network(provider: WasmCryptoProvider) -> None:
