@@ -118,6 +118,24 @@ def test_dry_run_estimated_fee_accepts_bare_finalize_block() -> None:
     assert _dry_run(raw).estimated_fee == 7 + FEE_ESTIMATE_ALLOWANCE
 
 
+def test_dry_run_estimated_fee_prefers_higher_total_fees_required() -> None:
+    raw = _finalize(fee_receipt=_fee_receipt({"Initial": 100}), total_fees_required=650)
+    assert _dry_run(raw).estimated_fee == 650 + FEE_ESTIMATE_ALLOWANCE
+
+
+def test_dry_run_estimated_fee_falls_back_when_total_fees_required_lower_or_invalid() -> None:
+    raw = _finalize(fee_receipt=_fee_receipt({"Storage": 300}), total_fees_required=50)
+    assert _dry_run(raw).estimated_fee == 300 + FEE_ESTIMATE_ALLOWANCE
+
+    raw_bool = _finalize(total_fees_required=True)
+    assert _dry_run(raw_bool).estimated_fee == 0
+
+
+def test_dry_run_estimated_fee_uses_total_fees_required_without_fee_receipt() -> None:
+    raw = _finalize(total_fees_required=420)
+    assert _dry_run(raw).estimated_fee == 420 + FEE_ESTIMATE_ALLOWANCE
+
+
 def test_dry_run_outcome_commit() -> None:
     raw = _finalize(result={"Accept": {"up_substates": [], "down_substates": []}})
     assert _dry_run(raw).outcome == TransactionOutcome.commit()
