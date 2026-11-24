@@ -5,6 +5,19 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [0.8.1] — 2026-11-24
+
+Tracks the upstream
+[`tari-ootle` v0.56.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.56.0)
+release.
+
+### Changed
+
+- **Vendored `ootle-wasm` and `ootle-wasm-bor` bumped to 0.56.0.** No
+  blob API changes; upstream fixes are engine and transaction validation
+  hardening (stricter stealth output and balance-proof checks, bounded
+  deserialization, `br_table` limit on templates).
+
 ## [0.8.0] — 2026-11-20
 
 Tracks the upstream
