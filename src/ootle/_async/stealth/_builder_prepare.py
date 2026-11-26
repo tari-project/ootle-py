@@ -51,7 +51,7 @@ async def prepare_stealth_transfer(
     outputs_result = await _call_outputs_statement(client, state)
     statement = StealthTransferStatement(
         inputs_statement=StealthInputsStatement(
-            inputs=tuple(state.inputs_to_spend.values()),
+            inputs=state.stealth_inputs(),
             revealed_amount=state.revealed_input_amount,
         ),
         outputs_statement=outputs_result.statement,

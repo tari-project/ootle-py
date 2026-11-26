@@ -63,6 +63,19 @@ async def test_duplicate_stealth_input_raises(httpx_mock: HTTPXMock) -> None:
     await client.aclose()
 
 
+async def test_multiple_stealth_inputs_same_owner_allowed(httpx_mock: HTTPXMock) -> None:
+    client = await make_client(httpx_mock)
+    addr = recipient_address()
+    c2 = b"\xbb" * 32
+    b = (
+        AsyncStealthTransfer(client, RESOURCE)
+        .spend_stealth_input(addr, COMMITMENT)
+        .spend_stealth_input(addr, c2)
+    )
+    assert len(b._state.stealth_inputs()) == 2  # pyright: ignore[reportPrivateUsage]
+    await client.aclose()
+
+
 async def test_negative_amounts_rejected(httpx_mock: HTTPXMock) -> None:
     client = await make_client(httpx_mock)
     b = AsyncStealthTransfer(client, RESOURCE)

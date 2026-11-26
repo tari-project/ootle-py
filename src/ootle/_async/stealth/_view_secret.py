@@ -40,7 +40,7 @@ def resolve_view_secret(spec: StealthTransferSpec, view_secret: bytes | None) ->
         InvalidArgumentError: A stealth-input spec was given no secret, or
             the supplied secret is not 32 bytes.
     """
-    if spec.state.inputs_to_spend and view_secret is None:
+    if spec.state.stealth_inputs() and view_secret is None:
         msg = "stealth inputs require a view_secret to decrypt their input masks"
         raise InvalidArgumentError(msg)
     if view_secret is None:

@@ -99,10 +99,19 @@ class StealthTransfer:
 
     def spend_stealth_input(self, owner_addr: Address, commitment: bytes) -> Self:
         """Spend a stealth UTXO owned by ``owner_addr`` (32-byte commitment)."""
-        if owner_addr in self._state.inputs_to_spend:
-            msg = f"stealth input from {owner_addr.bech32m} already added"
+        sin = StealthInput(commitment=commitment)
+        existing_inputs = self._state.inputs_to_spend.get(owner_addr)
+        if existing_inputs is not None and sin in existing_inputs:
+            msg = f"stealth input {commitment.hex()} from {owner_addr.bech32m} already added"
             raise InvalidArgumentError(msg)
-        self._state.inputs_to_spend[owner_addr] = StealthInput(commitment=commitment)
+        for existing_owner, owner_inputs in self._state.inputs_to_spend.items():
+            if sin in owner_inputs:
+                msg = f"stealth input {commitment.hex()} already added for {existing_owner.bech32m}"
+                raise InvalidArgumentError(msg)
+        if existing_inputs is None:
+            self._state.inputs_to_spend[owner_addr] = [sin]
+        else:
+            existing_inputs.append(sin)
         add_stealth_input_want(self._want_list, commitment, self._state.resource)
         return self
 
