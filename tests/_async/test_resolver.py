@@ -142,3 +142,30 @@ async def test_required_vault_missing_raises(httpx_mock: HTTPXMock) -> None:
     with pytest.raises(IndexerClientError):
         await resolver.resolve(_empty_unsigned(), {want})
     await transport.aclose()
+
+
+async def test_all_component_vaults_declares_non_tari_resource_readonly(
+    httpx_mock: HTTPXMock,
+) -> None:
+    component = "component_acc"
+    vault = "vault_" + ("bb" * 32)
+    resource = "resource_" + ("22" * 32)
+    httpx_mock.add_response(
+        url="http://idx/substates/fetch",
+        method="POST",
+        json={"substates": {component: batch_entry(component_value({resource: vault}), version=1)}},
+    )
+    httpx_mock.add_response(
+        url="http://idx/substates/fetch",
+        method="POST",
+        json={"substates": {vault: batch_entry(fungible_vault_value(resource, 50), version=1)}},
+    )
+    transport = AsyncIndexerTransport("http://idx")
+    resolver = AsyncTransactionInputResolver(transport)
+    want = WantInput.AllComponentVaults(component=ComponentAddress(component))
+    out = await resolver.resolve(_empty_unsigned(), {want})
+    await transport.aclose()
+    body = json.loads(out.json)
+    inputs_by_id = {req["substate_id"]: req for req in body["inputs"]}
+    assert inputs_by_id[vault]["is_write"] is True
+    assert inputs_by_id[resource]["is_write"] is False

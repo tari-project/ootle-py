@@ -65,7 +65,10 @@ async def get_account_balances(
     for substate in vaults.values():
         value = substate.value
         if isinstance(value, VaultSubstateValue):
-            balances[value.resource_address] = value.balance
+            prev = balances.get(value.resource_address)
+            balances[value.resource_address] = (
+                value.balance if prev is None else Amount(int(prev) + int(value.balance))
+            )
     return balances
 
 
