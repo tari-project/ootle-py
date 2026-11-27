@@ -10,6 +10,7 @@ from ootle._types._cbor import (
     cbor_encode_amount,
     cbor_encode_bool,
     cbor_encode_bytes,
+    cbor_encode_int,
     cbor_encode_metadata,
     cbor_encode_resource_address,
     cbor_encode_str,
@@ -85,3 +86,14 @@ def test_cbor_encode_resource_address_accepts_prefixed_and_raw_hex(addr: str) ->
     assert isinstance(decoded, cbor2.CBORTag)
     assert decoded.tag == int(BinaryTag.RESOURCE_ADDRESS)
     assert decoded.value == bytes.fromhex(_RESOURCE_HEX)
+
+
+@pytest.mark.parametrize("value", [-(1 << 64) - 1, -500, -1, 0, 500, (1 << 64) - 1])
+def test_cbor_encode_int_roundtrips_signed_and_unsigned(value: int) -> None:
+    blob = cbor_encode_int(value)
+    assert cbor2.loads(blob) == value
+
+
+def test_cbor_encode_int_rejects_bool() -> None:
+    with pytest.raises(TypeError, match="not bool"):
+        cbor_encode_int(True)

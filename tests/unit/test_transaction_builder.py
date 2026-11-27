@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ootle import TransactionBuilder
+from ootle._async.builders._arg_coerce import cbor_literal
 from ootle._types._tari_constants import (
     XTR_FAUCET_COMPONENT_ADDRESS,
     XTR_FAUCET_VAULT_ADDRESS,
@@ -152,3 +153,16 @@ def test_amount_literal_round_trip_in_pay_fee() -> None:
     import cbor2  # noqa: PLC0415
 
     assert cbor2.loads(body_bytes) == 10 * TARI
+
+
+def test_cbor_literal_accepts_signed_int_and_validates_amount() -> None:
+    import cbor2  # noqa: PLC0415
+
+    neg_arg = cbor_literal(-42)
+    assert cbor2.loads(bytes.fromhex(neg_arg.body_hex)) == -42
+
+    pos_amount = cbor_literal(Amount(500))
+    assert cbor2.loads(bytes.fromhex(pos_amount.body_hex)) == 500
+
+    with pytest.raises(ValueError, match="non-negative"):
+        cbor_literal(Amount(-1))

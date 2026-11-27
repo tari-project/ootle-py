@@ -9,6 +9,7 @@ from pytest_httpx import HTTPXMock
 
 from ootle import OotleClient
 from ootle._sync import _events as events_mod
+from ootle._types.address import TemplateAddress
 from ootle._types.events import TransactionEvent, TransactionEventFilter
 from tests._helpers.encoded import encoded
 from tests._helpers.sse import fake_connect_sse
@@ -101,3 +102,28 @@ def test_watch_events_all_none_filter_passes_all(
         for e in client.watch_events(TransactionEventFilter()):
             results.append(e)
     assert len(results) == 1
+
+
+def test_watch_events_normalizes_template_address_prefix(
+    monkeypatch: pytest.MonkeyPatch, httpx_mock: HTTPXMock
+) -> None:
+    httpx_mock.add_response(url="http://idx/network", json=_NETWORK)
+    tmpl_hex = "ab" * 32
+    events_raw = [
+        _sse("Token::Mint", id="1", template=tmpl_hex),
+        _sse("Token::Burn", id="2", template="cd" * 32),
+    ]
+    seen_params: list[object] = []
+
+    def _fake(_c: object, _m: object, _u: object, **kw: object) -> object:
+        seen_params.append(kw.get("params"))
+        return fake_connect_sse(events_raw)
+
+    monkeypatch.setattr(events_mod, "_open_sse_stream", _fake)
+    f = TransactionEventFilter(template_address=TemplateAddress(f"template_{tmpl_hex}"))
+    results: list[TransactionEvent] = []
+    with OotleClient.connect("http://idx") as client:
+        for e in client.watch_events(f):
+            results.append(e)
+    assert seen_params == [{"template_address": tmpl_hex}]
+    assert [e.id for e in results] == [1]

@@ -45,6 +45,14 @@ def cbor_encode_bool(value: bool) -> bytes:
     return cbor2.dumps(value)
 
 
+def cbor_encode_int(value: int) -> bytes:
+    """CBOR-encode a signed or unsigned integer (matches ``tari_bor``)."""
+    if isinstance(value, bool):
+        msg = "expected int, not bool"
+        raise TypeError(msg)
+    return cbor2.dumps(value)
+
+
 def cbor_encode_metadata(entries: Mapping[str, str]) -> bytes:
     """CBOR-encode a metadata mapping as ``Tag(129, Map<text, text>)``.
 

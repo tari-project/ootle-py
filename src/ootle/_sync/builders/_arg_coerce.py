@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from ootle._types.amount import Amount
 from ootle._types.instructions import (
     InstructionArgLiteral,
     InstructionArgWorkspace,
@@ -30,14 +31,17 @@ def cbor_literal(value: Any) -> InstructionArgLiteral:
     from ootle._types._cbor import (  # noqa: PLC0415
         cbor_encode_bool,
         cbor_encode_bytes,
+        cbor_encode_int,
         cbor_encode_str,
     )
 
     match value:
         case bool():
             return InstructionArgLiteral(body_hex=cbor_encode_bool(value).hex())
-        case int():
+        case Amount():
             return amount_literal(value)
+        case int():
+            return InstructionArgLiteral(body_hex=cbor_encode_int(value).hex())
         case str():
             return InstructionArgLiteral(body_hex=cbor_encode_str(value).hex())
         case bytes():

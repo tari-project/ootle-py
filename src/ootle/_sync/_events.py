@@ -50,7 +50,7 @@ def watch_events(
     if substate_id is not None:
         params["substate_id"] = substate_id.opaque
     if template_address is not None:
-        params["template_address"] = str(template_address)
+        params["template_address"] = _normalize_template_address(template_address)
 
     url = f"{transport.url}/transactions/events/stream"
     with _open_sse_stream(transport.client, "GET", url, params=params) as source:
@@ -80,6 +80,11 @@ def _parse_sse_event(*, sse_topic: str, sse_id: str, data: str) -> TransactionEv
         return None
 
 
+def _normalize_template_address(address: TemplateAddress | str) -> str:
+    """Strip an optional ``template_`` prefix to compare bare hex addresses."""
+    return str(address).removeprefix("template_")
+
+
 def _matches(
     event: TransactionEvent,
     *,
@@ -92,4 +97,10 @@ def _matches(
         return False
     if substate_id is not None and event.substate_id != substate_id:
         return False
-    return template_address is None or event.template_address == template_address
+    if template_address is None:
+        return True
+    if event.template_address is None:
+        return False
+    return _normalize_template_address(event.template_address) == _normalize_template_address(
+        template_address
+    )
