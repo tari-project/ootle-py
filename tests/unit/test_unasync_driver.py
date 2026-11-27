@@ -8,6 +8,7 @@ helper against a tiny, self-contained ``_async`` source tree.
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -120,3 +121,37 @@ def test_additional_replacements_match_architecture_spec(driver: ModuleType) -> 
 def test_check_mode_passes_against_committed_tree(driver: ModuleType) -> None:
     rc: Any = driver._check()  # pyright: ignore[reportPrivateUsage, reportAny]
     assert rc == 0
+
+
+def test_ruff_command_prefers_active_interpreter_module(
+    driver: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _find_spec(name: str) -> object | None:
+        return object() if name == "ruff" else None
+
+    def _which(_name: str) -> str | None:
+        return "/usr/bin/ruff"
+
+    monkeypatch.setattr(importlib.util, "find_spec", _find_spec)
+    monkeypatch.setattr(shutil, "which", _which)
+    assert driver._ruff_command() == [sys.executable, "-m", "ruff"]  # pyright: ignore[reportPrivateUsage]
+
+
+def test_ruff_command_falls_back_to_path_then_uv(
+    driver: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _no_spec(_name: str) -> object | None:
+        return None
+
+    def _which_ruff(name: str) -> str | None:
+        return "/usr/bin/ruff" if name == "ruff" else None
+
+    def _no_which(_name: str) -> str | None:
+        return None
+
+    monkeypatch.setattr(importlib.util, "find_spec", _no_spec)
+    monkeypatch.setattr(shutil, "which", _which_ruff)
+    assert driver._ruff_command() == ["/usr/bin/ruff"]  # pyright: ignore[reportPrivateUsage]
+
+    monkeypatch.setattr(shutil, "which", _no_which)
+    assert driver._ruff_command() == ["uv", "run", "ruff"]  # pyright: ignore[reportPrivateUsage]

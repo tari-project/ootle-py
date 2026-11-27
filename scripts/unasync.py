@@ -20,7 +20,9 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import importlib.util
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -170,6 +172,16 @@ def _iter_sources(in_root: Path, pairs: Sequence[tuple[str, str]]) -> list[Path]
     return sources
 
 
+def _ruff_command() -> list[str]:
+    """Resolve the ``ruff`` command for the active Python environment."""
+    if importlib.util.find_spec("ruff") is not None:
+        return [sys.executable, "-m", "ruff"]
+    ruff_bin = shutil.which("ruff")
+    if ruff_bin is not None:
+        return [ruff_bin]
+    return ["uv", "run", "ruff"]
+
+
 def regenerate(
     in_root: Path,
     out_root: Path,
@@ -200,7 +212,7 @@ def regenerate(
         targets = [str(out_root / dst) for _src, dst in pairs if (out_root / dst).is_dir()]
         if targets:
             subprocess.run(  # noqa: S603 — well-known argv, no shell
-                ["uv", "run", "ruff", "format", *targets],  # noqa: S607 — `uv` on PATH by design
+                [*_ruff_command(), "format", *targets],
                 check=True,
                 cwd=str(REPO_ROOT),
                 stdout=subprocess.DEVNULL,
