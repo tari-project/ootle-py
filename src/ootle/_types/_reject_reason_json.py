@@ -70,6 +70,24 @@ def parse_reject_reason(value: Any) -> RejectReason:
     return _parse_object_variant(variant, payload, items)
 
 
+def parse_decision_abort(decision: Any) -> Abort | UnknownRejectReason | None:
+    """Parse consensus ``Decision::Abort(AbortReason)`` (``{"Abort": "<variant>"}``).
+
+    Returns ``None`` when *decision* is not a single-key ``{"Abort": ...}`` object.
+    Unrecognized future ``AbortReason`` strings yield :class:`UnknownRejectReason`
+    instead of raising so finalized transaction decoding stays resilient.
+    """
+    if not isinstance(decision, dict):
+        return None
+    dec = cast("dict[str, Any]", decision)
+    if len(dec) != 1 or "Abort" not in dec:
+        return None
+    raw_reason = dec["Abort"]
+    if isinstance(raw_reason, str) and raw_reason in _ABORT_REASON_VARIANTS:
+        return Abort(reason=cast("AbortReason", raw_reason))
+    return UnknownRejectReason(discriminator="Abort", raw=dec)
+
+
 def unwrap_tuple_reason(rest: Any) -> Any:
     """Pull the ``RejectReason`` element out of a serde tuple-variant payload.
 

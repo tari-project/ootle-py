@@ -11,7 +11,12 @@ from ootle._types._indexer_json import (
     parse_submit_response,
     parse_transaction_result,
 )
-from ootle._types.reject_reason import ExecutionFailure, InsufficientFeesPaid
+from ootle._types.reject_reason import (
+    Abort,
+    ExecutionFailure,
+    InsufficientFeesPaid,
+    UnknownRejectReason,
+)
 from tests._helpers.encoded import encoded
 
 
@@ -157,3 +162,86 @@ def test_transaction_result_preserves_empty_abort_details() -> None:
     _, outcome = parse_transaction_result(payload)
     assert outcome is not None
     assert outcome.reason == ""
+
+
+def test_transaction_result_decision_abort_without_execution_result() -> None:
+    """Pre-execution consensus aborts carry ``final_decision = {"Abort": reason}``."""
+    payload = {"result": {"Finalized": {"final_decision": {"Abort": "EpochExpired"}}}}
+    is_finalized, outcome = parse_transaction_result(payload)
+    assert is_finalized is True
+    assert outcome is not None
+    assert outcome.is_reject
+    assert outcome.reject_reason == Abort(reason="EpochExpired")
+    assert outcome.reason == "Abort: EpochExpired"
+
+
+def test_transaction_result_decision_abort_preserves_abort_details_and_typed_reason() -> None:
+    payload = {
+        "result": {
+            "Finalized": {
+                "final_decision": {"Abort": "LockInputsFailed"},
+                "abort_details": "input shard conflict",
+            }
+        }
+    }
+    _, outcome = parse_transaction_result(payload)
+    assert outcome is not None
+    assert outcome.is_reject
+    assert outcome.reject_reason == Abort(reason="LockInputsFailed")
+    assert outcome.reason == "input shard conflict"
+
+
+def test_transaction_result_decision_abort_unknown_variant_does_not_raise() -> None:
+    payload = {"result": {"Finalized": {"final_decision": {"Abort": "FutureConsensusAbort"}}}}
+    _, outcome = parse_transaction_result(payload)
+    assert outcome is not None
+    assert outcome.is_reject
+    assert outcome.reject_reason == UnknownRejectReason(
+        discriminator="Abort", raw={"Abort": "FutureConsensusAbort"}
+    )
+    assert outcome.reason == "Unknown: Abort"
+
+
+def test_transaction_result_commit_with_engine_reject_is_rejected() -> None:
+    payload: dict[str, Any] = {
+        "result": {
+            "Finalized": {
+                "final_decision": "Commit",
+                "execution_result": encoded(
+                    {"finalize": {"result": {"Reject": {"ExecutionFailure": "boom"}}}}
+                ),
+            }
+        }
+    }
+    _, outcome = parse_transaction_result(payload)
+    assert outcome is not None
+    assert outcome.is_reject
+    assert outcome.reject_reason == ExecutionFailure(message="boom")
+
+
+def test_transaction_result_abort_with_accept_fee_reject_rest_stays_reject() -> None:
+    accept: dict[str, list[object]] = {"up_substates": []}
+    payload: dict[str, Any] = {
+        "result": {
+            "Finalized": {
+                "final_decision": {"Abort": "InsufficientFeesPaid"},
+                "execution_result": encoded(
+                    {
+                        "finalize": {
+                            "result": {
+                                "AcceptFeeRejectRest": [
+                                    accept,
+                                    {"InsufficientFeesPaid": "fees of 10 less than minimum 100"},
+                                ]
+                            }
+                        }
+                    }
+                ),
+            }
+        }
+    }
+    _, outcome = parse_transaction_result(payload)
+    assert outcome is not None
+    assert outcome.is_reject
+    assert not outcome.is_only_fee_commit
+    assert outcome.reject_reason == InsufficientFeesPaid(message="fees of 10 less than minimum 100")

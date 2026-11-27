@@ -20,7 +20,11 @@ from typing import Any, cast
 
 from ootle._types._encoded import EncodedKind, decode_encoded_object
 from ootle._types._json_helpers import require_dict, require_int, require_str
-from ootle._types._reject_reason_json import parse_reject_reason, unwrap_tuple_reason
+from ootle._types._reject_reason_json import (
+    parse_decision_abort,
+    parse_reject_reason,
+    unwrap_tuple_reason,
+)
 from ootle._types._substate_json import parse_substate_value
 from ootle._types.network import Network, NetworkInfo
 from ootle._types.outcome import TransactionOutcome
@@ -124,25 +128,43 @@ def parse_transaction_result(payload: dict[str, Any]) -> tuple[bool, Transaction
 def _decode_finalized(fin: dict[str, Any]) -> TransactionOutcome:
     decision = fin.get("final_decision")
     raw_details = fin.get("abort_details")
-    abort_details = "Unknown" if raw_details is None else raw_details
     engine_result = _engine_result(fin)
 
     if decision == "Commit":
-        match engine_result:
-            case {"AcceptFeeRejectRest": rest}:
-                rr = parse_reject_reason(unwrap_tuple_reason(rest))
-                return TransactionOutcome.only_fee_commit(
-                    reason=format_reject_reason(rr), reject_reason=rr
-                )
-            case _:
-                return TransactionOutcome.commit()
+        return _decode_commit_decision(engine_result)
 
     match engine_result:
         case {"Reject": payload}:
             rr = parse_reject_reason(payload)
             return TransactionOutcome.reject(reason=format_reject_reason(rr), reject_reason=rr)
+        case {"AcceptFeeRejectRest": rest}:
+            rr = parse_reject_reason(unwrap_tuple_reason(rest))
+            reason = format_reject_reason(rr) if raw_details is None else _stringify(raw_details)
+            return TransactionOutcome.reject(reason=reason, reject_reason=rr)
         case _:
+            if (abort_rr := parse_decision_abort(decision)) is not None:
+                reason = (
+                    format_reject_reason(abort_rr)
+                    if raw_details is None
+                    else _stringify(raw_details)
+                )
+                return TransactionOutcome.reject(reason=reason, reject_reason=abort_rr)
+            abort_details = "Unknown" if raw_details is None else raw_details
             return TransactionOutcome.reject(_stringify(abort_details))
+
+
+def _decode_commit_decision(engine_result: Any) -> TransactionOutcome:
+    match engine_result:
+        case {"AcceptFeeRejectRest": rest}:
+            rr = parse_reject_reason(unwrap_tuple_reason(rest))
+            return TransactionOutcome.only_fee_commit(
+                reason=format_reject_reason(rr), reject_reason=rr
+            )
+        case {"Reject": payload}:
+            rr = parse_reject_reason(payload)
+            return TransactionOutcome.reject(reason=format_reject_reason(rr), reject_reason=rr)
+        case _:
+            return TransactionOutcome.commit()
 
 
 def _engine_result(fin: dict[str, Any]) -> Any:
