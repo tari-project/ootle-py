@@ -156,20 +156,31 @@ class DryRunResult:
     def estimated_fee(self) -> Amount:
         """The fee (µTari) to submit this transaction at.
 
-        :attr:`fees_charged` plus :data:`FEE_ESTIMATE_ALLOWANCE`, matching the
-        engine's ``FeeReceipt::required_fees``. The fee is itself an input to
-        what a transaction is charged, so the real run of a transaction built
-        at a different fee than its dry run meters slightly differently; the
-        allowance covers that drift. It does not cover a different
-        transaction: re-estimate after changing the inputs or outputs.
-        Returns ``Amount(0)`` if the fee receipt is absent.
+        ``max(fees_charged, total_fees_required)`` plus
+        :data:`FEE_ESTIMATE_ALLOWANCE`, matching the engine's
+        ``FinalizeResult::required_fees``. When only the fee intent commits
+        (``AcceptFeeRejectRest``), ``fee_receipt`` only covers the fee
+        checkpoint whereas ``finalize.total_fees_required`` carries the full
+        amount the transaction needed.
+        Returns ``Amount(0)`` if neither fee field is present.
         """
         from ootle._types.amount import Amount  # noqa: PLC0415
 
         charged = self.fees_charged
-        if charged is None:
+        raw_required = _get(_finalize_block(self.raw), "total_fees_required")
+        required = (
+            raw_required
+            if isinstance(raw_required, int)
+            and not isinstance(raw_required, bool)
+            and raw_required >= 0
+            else None
+        )
+        if charged is None and required is None:
             return Amount(0)
-        return Amount(int(charged) + FEE_ESTIMATE_ALLOWANCE)
+        base = max(
+            int(charged) if charged is not None else 0, required if required is not None else 0
+        )
+        return Amount(base + FEE_ESTIMATE_ALLOWANCE)
 
     @property
     def outcome(self) -> TransactionOutcome | None:
