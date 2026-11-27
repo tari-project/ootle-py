@@ -3,8 +3,8 @@
 The wasm-bindgen build exposes a minimal host surface: randomness
 (``getRandomValues``), JS ``Error`` construction, the panic/throw hook
 (``__wbindgen_throw``), externref-table initialisation, and the BigInt
-intrinsics (``u64 -> externref`` cast, ``bigint_get_as_i64``, ``jsval_eq``)
-that model JS ``BigInt`` values as Python ``int``. Each name
+intrinsics (``u64 -> externref`` cast, ``bigint_get_as_i64``, ``jsval_eq``,
+``shr``) that model JS ``BigInt`` values as Python ``int``. Each name
 carries wasm-bindgen's mangling suffix — stable for a given vendored
 blob, but regenerated on every upstream rebuild.
 
@@ -67,12 +67,20 @@ def _build_handlers(bridge: Bridge) -> dict[str, Callable[..., object]]:
         """JS ``===``: no cross-type coercion, so ``True`` is not ``1n``."""
         return int(type(a) is type(b) and a == b)
 
+    def shr(a: object, b: object) -> object:
+        """JS BigInt ``a >> b``; the u128 argument decode splits a value into halves."""
+        if not isinstance(a, int) or not isinstance(b, int):
+            msg = f"shr expects two BigInts, got {type(a).__name__} >> {type(b).__name__}"
+            raise TypeError(msg)
+        return a >> b
+
     return {
         "__wbg_getRandomValues_47873ea553f6780e": get_random_values,
         "__wbg___wbindgen_throw_5d9e815e6fdf150f": throw_panic,
         "__wbg_Error_67e7344beaa85059": make_error,
         "__wbg___wbindgen_jsval_eq_9fdcd3c0a860dd3b": jsval_eq,
         "__wbg___wbindgen_bigint_get_as_i64_b482365c149396c8": bigint_get_as_i64,
+        "__wbg___wbindgen_shr_56cae1eadababcab": shr,
         "__wbindgen_init_externref_table": externref_table_init,
         "__wbindgen_generic_0000000000000001": u64_to_externref,
     }

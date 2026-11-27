@@ -78,10 +78,14 @@ def test_bigint_import_handlers(bridge: Bridge) -> None:
     cast_u64 = handlers["__wbindgen_generic_0000000000000001"]
     get_as_i64 = handlers["__wbg___wbindgen_bigint_get_as_i64_b482365c149396c8"]
     jsval_eq = handlers["__wbg___wbindgen_jsval_eq_9fdcd3c0a860dd3b"]
+    shr = handlers["__wbg___wbindgen_shr_56cae1eadababcab"]
 
     assert cast_u64(-1) == 2**64 - 1
     assert jsval_eq(5, 5) == 1
     assert jsval_eq(True, 1) == 0
+    assert shr(2**64 + 7, 64) == 1
+    with pytest.raises(TypeError):
+        shr("x", 64)
 
     ptr, length = _abi.alloc_bytes(bridge, bytes(16))
     try:
