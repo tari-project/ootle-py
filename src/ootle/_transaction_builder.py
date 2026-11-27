@@ -40,17 +40,18 @@ if TYPE_CHECKING:
 class TransactionBuilder(EnvelopeMixin, ProofAuthorizationMixin):
     """Fluent builder for :class:`UnsignedTransaction`."""
 
-    __slots__ = ("_body", "_fee", "_workspace_ids")
+    __slots__ = ("_body", "_fee", "_next_workspace_id", "_workspace_ids")
 
     def __init__(self, network: Network | int) -> None:
         net_byte = network.value if isinstance(network, Network) else int(network)
         self._body = UnsignedTransactionV1Body.empty(net_byte)
         self._fee = FeeBlock()
         self._workspace_ids: dict[str, int] = {}
+        self._next_workspace_id: int = 0
 
     def next_workspace_id(self) -> int:
         """Return the next free workspace id without allocating it."""
-        return len(self._workspace_ids)
+        return self._next_workspace_id
 
     def alloc_workspace(self, label: str) -> int:
         """Allocate and register the next workspace id under *label*; return it.
@@ -64,7 +65,8 @@ class TransactionBuilder(EnvelopeMixin, ProofAuthorizationMixin):
         if label in self._workspace_ids:
             msg = f"workspace label {label!r} already allocated"
             raise InvalidArgumentError(msg)
-        wid = self.next_workspace_id()
+        wid = self._next_workspace_id
+        self._next_workspace_id += 1
         self._workspace_ids[label] = wid
         return wid
 
@@ -122,13 +124,19 @@ class TransactionBuilder(EnvelopeMixin, ProofAuthorizationMixin):
         self._body.add_input(requirement)
         return self
 
+    def _observe_instruction(self, instruction: Instruction) -> None:
+        if isinstance(instruction, PutLastInstructionOutputOnWorkspace):
+            self._next_workspace_id = max(self._next_workspace_id, instruction.key + 1)
+
     def add_instruction(self, instruction: Instruction) -> Self:
         """Append a pre-built ``Instruction`` variant to the body."""
+        self._observe_instruction(instruction)
         self._body.instructions.append(instruction)
         return self
 
     def add_fee_instruction(self, instruction: Instruction) -> Self:
         """Append a pre-built ``Instruction`` variant to the fee block."""
+        self._observe_instruction(instruction)
         self._fee.instructions.append(instruction)
         return self
 

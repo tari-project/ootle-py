@@ -89,6 +89,18 @@ def _merge_workspace_ids(dst_ws: dict[str, int], src_ws: dict[str, int], *, offs
         dst_ws.setdefault(label, wid + offset)
 
 
+def _reserve_merge_offset(dst: TransactionBuilder, src: TransactionBuilder) -> int:
+    """Fold *src*'s workspace registry into *dst* and advance the slot counter."""
+    offset = dst._next_workspace_id  # pyright: ignore[reportPrivateUsage]  # internal access
+    _merge_workspace_ids(
+        dst._workspace_ids,  # pyright: ignore[reportPrivateUsage]  # internal access
+        src._workspace_ids,  # pyright: ignore[reportPrivateUsage]  # internal access
+        offset=offset,
+    )
+    dst._next_workspace_id = offset + src._next_workspace_id  # pyright: ignore[reportPrivateUsage]  # internal access
+    return offset
+
+
 def merge_into(dst: TransactionBuilder, src: TransactionBuilder) -> None:
     """Merge *src*'s state into *dst*, remapping workspace ids to avoid conflicts.
 
@@ -103,10 +115,9 @@ def merge_into(dst: TransactionBuilder, src: TransactionBuilder) -> None:
     # Aliases below deliberately reach into TransactionBuilder internals; the
     # alternative is duplicating the merge inside the class and overflowing
     # the 200-line cap on ``_transaction_builder.py``.
-    dst_ws, dst_body, dst_fee = dst._workspace_ids, dst._body, dst._fee  # pyright: ignore[reportPrivateUsage]  # internal access
-    src_ws, src_body, src_fee = src._workspace_ids, src._body, src._fee  # pyright: ignore[reportPrivateUsage]  # internal access
-    offset, blob_offset = len(dst_ws), len(dst_body.blobs)
-    _merge_workspace_ids(dst_ws, src_ws, offset=offset)
+    dst_body, dst_fee = dst._body, dst._fee  # pyright: ignore[reportPrivateUsage]  # internal access
+    src_body, src_fee = src._body, src._fee  # pyright: ignore[reportPrivateUsage]  # internal access
+    offset, blob_offset = _reserve_merge_offset(dst, src), len(dst_body.blobs)
     dst_body.instructions.extend(
         _remap_instruction(i, offset=offset, blob_offset=blob_offset) for i in src_body.instructions
     )
@@ -126,14 +137,13 @@ def merge_fee_builder(dst: TransactionBuilder, inner: TransactionBuilder) -> Non
 
     The inner builder allocates workspace ids from 0; *dst* may already use
     some, so every workspace id carried in the appended instructions (and the
-    label→id map) is offset by ``len(dst._workspace_ids)`` — the same scheme
+    label→id map) is offset by ``dst._next_workspace_id`` — the same scheme
     :func:`merge_into` uses. Blobs are folded onto the main body so blob-index
     references stay valid.
     """
-    dst_ws, dst_body, dst_fee = dst._workspace_ids, dst._body, dst._fee  # pyright: ignore[reportPrivateUsage]  # internal access
-    inner_ws, inner_body = inner._workspace_ids, inner._body  # pyright: ignore[reportPrivateUsage]  # internal access
-    offset, blob_offset = len(dst_ws), len(dst_body.blobs)
-    _merge_workspace_ids(dst_ws, inner_ws, offset=offset)
+    dst_body, dst_fee = dst._body, dst._fee  # pyright: ignore[reportPrivateUsage]  # internal access
+    inner_body = inner._body  # pyright: ignore[reportPrivateUsage]  # internal access
+    offset, blob_offset = _reserve_merge_offset(dst, inner), len(dst_body.blobs)
     dst_fee.instructions.extend(
         _remap_instruction(i, offset=offset, blob_offset=blob_offset)
         for i in inner_body.instructions
