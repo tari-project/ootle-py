@@ -20,14 +20,60 @@ if TYPE_CHECKING:
     from ootle._types.amount import Amount
 
 
+def _encode_tagged_hex(addr: str, prefix: str, tag: BinaryTag) -> bytes:
+    """Decode *addr* after stripping optional *prefix* and wrap in *tag*."""
+    hex_str = addr.removeprefix(prefix)
+    if not hex_str:
+        msg = f"Missing hex payload in address: {addr!r}"
+        raise ValueError(msg)
+    return cbor2.dumps(cbor2.CBORTag(int(tag), bytes.fromhex(hex_str)))
+
+
+def cbor_encode_component_address(addr: str) -> bytes:
+    """CBOR-encode a ``ComponentAddress`` as ``BinaryTag::ComponentAddress(ObjectKey)``.
+
+    Mirrors the Rust ``tari_bor::encode(&component_address)`` path — a CBOR tag
+    128 wrapping the 32-byte ``ObjectKey`` bytes.
+    """
+    return _encode_tagged_hex(addr, "component_", BinaryTag.COMPONENT_ADDRESS)
+
+
 def cbor_encode_resource_address(addr: str) -> bytes:
     """CBOR-encode a ``ResourceAddress`` as ``BinaryTag::ResourceAddress(ObjectKey)``.
 
     Mirrors the Rust ``tari_bor::encode(&resource_address)`` path used by the
     ``args!`` macro — a CBOR tag 131 wrapping the 32-byte ``ObjectKey`` bytes.
     """
-    hash_bytes = bytes.fromhex(addr.removeprefix("resource_"))
-    return cbor2.dumps(cbor2.CBORTag(int(BinaryTag.RESOURCE_ADDRESS), hash_bytes))
+    return _encode_tagged_hex(addr, "resource_", BinaryTag.RESOURCE_ADDRESS)
+
+
+def cbor_encode_template_address(addr: str) -> bytes:
+    """CBOR-encode a ``TemplateAddress`` as an untagged ``Hash32`` byte string.
+
+    Mirrors ``ootle_sdk_core``'s ``encode_address`` path where
+    ``SubstateId::Template`` lowers to ``TemplateAddress`` (``Hash32``), which
+    encodes as raw CBOR bytes without a ``BinaryTag``.
+    """
+    hex_str = addr.removeprefix("template_")
+    if not hex_str:
+        msg = f"Missing hex payload in template address: {addr!r}"
+        raise ValueError(msg)
+    return cbor2.dumps(bytes.fromhex(hex_str))
+
+
+def cbor_encode_address(addr: str) -> bytes:
+    """CBOR-encode a prefixed ``ComponentAddress``, ``ResourceAddress``, or ``TemplateAddress``."""
+    if addr.startswith("component_"):
+        return cbor_encode_component_address(addr)
+    if addr.startswith("resource_"):
+        return cbor_encode_resource_address(addr)
+    if addr.startswith("template_"):
+        return cbor_encode_template_address(addr)
+    msg = (
+        f"Unrecognized address prefix in {addr!r}; expected 'component_', "
+        "'resource_', or 'template_'"
+    )
+    raise ValueError(msg)
 
 
 def cbor_encode_str(value: str) -> bytes:

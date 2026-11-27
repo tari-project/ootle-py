@@ -10,15 +10,18 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from ootle._types._cbor import (
+    cbor_encode_address,
     cbor_encode_amount,
+    cbor_encode_component_address,
     cbor_encode_metadata,
     cbor_encode_resource_address,
+    cbor_encode_template_address,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from ootle._types.address import ComponentAddress, ResourceAddress
+    from ootle._types.address import ComponentAddress, ResourceAddress, TemplateAddress
     from ootle._types.amount import Amount
 
 
@@ -95,9 +98,26 @@ def amount_literal(value: Amount | int) -> InstructionArgLiteral:
     return InstructionArgLiteral(body_hex=cbor_encode_amount(value).hex())
 
 
+def component_address_literal(addr: ComponentAddress) -> InstructionArgLiteral:
+    """Build an ``InstructionArg::Literal`` carrying a CBOR-encoded ComponentAddress."""
+    return InstructionArgLiteral(body_hex=cbor_encode_component_address(addr).hex())
+
+
 def resource_address_literal(addr: ResourceAddress) -> InstructionArgLiteral:
     """Build an ``InstructionArg::Literal`` carrying a CBOR-encoded ResourceAddress."""
     return InstructionArgLiteral(body_hex=cbor_encode_resource_address(addr).hex())
+
+
+def template_address_literal(addr: TemplateAddress) -> InstructionArgLiteral:
+    """Build an ``InstructionArg::Literal`` carrying a CBOR-encoded TemplateAddress."""
+    return InstructionArgLiteral(body_hex=cbor_encode_template_address(addr).hex())
+
+
+def address_literal(
+    addr: ComponentAddress | ResourceAddress | TemplateAddress,
+) -> InstructionArgLiteral:
+    """Build an ``InstructionArg::Literal`` carrying a CBOR-encoded typed address."""
+    return InstructionArgLiteral(body_hex=cbor_encode_address(addr).hex())
 
 
 def metadata_literal(entries: Mapping[str, str]) -> InstructionArgLiteral:
