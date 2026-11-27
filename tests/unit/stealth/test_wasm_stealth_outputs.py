@@ -79,6 +79,13 @@ def test_generate_outputs_statement_empty(provider: WasmCryptoProvider) -> None:
     assert result.statement.revealed_output == revealed
 
 
+def test_generate_outputs_statement_reveals_above_u64_max(provider: WasmCryptoProvider) -> None:
+    """Revealed amounts take the full ``Amount`` width (upstream 0.57)."""
+    revealed = RevealedOutput(2**64 + 7, REVEALED_RECEIVER)
+    result = provider.generate_outputs_statement(specs=(), revealed_output=revealed)
+    assert result.statement.revealed_output == revealed
+
+
 def test_generate_outputs_statement_honours_access_rule(provider: WasmCryptoProvider) -> None:
     """``PayTo::AccessRule`` gates the output on a condition tree, not a key (TIP-0006)."""
     output = _make_output(provider, 500, pay_to={"AccessRule": "AllowAll"})

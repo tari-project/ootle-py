@@ -5,6 +5,20 @@ All notable changes to `ootle` are recorded here. The project follows
 releases may introduce breaking changes between minor versions, but
 each is called out below.
 
+## [0.8.2] — 2026-11-27
+
+Tracks the upstream
+[`tari-ootle` v0.57.0](https://github.com/tari-project/tari-ootle/releases/tag/v0.57.0)
+release.
+
+### Changed
+
+- **Vendored `ootle-wasm` and `ootle-wasm-bor` bumped to 0.57.0.**
+- **Stealth revealed amounts take the full `Amount` width** (upstream
+  #3965). A revealed input or output above `u64::MAX` µTari now builds and
+  validates; the bridge gains the `shr` host import the blob uses to read
+  128-bit BigInt arguments.
+
 ## [0.8.1] — 2026-11-24
 
 Tracks the upstream
